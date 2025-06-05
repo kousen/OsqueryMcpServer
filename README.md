@@ -139,13 +139,6 @@ For Claude Desktop, add to your configuration:
 ./gradlew test
 ```
 
-### Building Native Image
-
-The project includes GraalVM Native Image support:
-
-```bash
-./gradlew nativeCompile
-```
 
 ## Built-in Diagnostic Queries
 
