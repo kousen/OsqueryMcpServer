@@ -1,18 +1,25 @@
 # Osquery MCP Server
 
-A Spring Boot application that provides a Model Context Protocol (MCP) server interface for [Osquery](https://osquery.io/), enabling AI tools to query system information using SQL.
+A Spring Boot application that provides a Model Context Protocol (MCP) server interface for [Osquery](https://osquery.io/), enabling AI assistants to answer system diagnostic questions using natural language.
 
 ## Overview
 
-The Osquery MCP Server bridges AI models and Osquery's powerful system introspection capabilities. It exposes Osquery functionality through the MCP protocol, allowing AI assistants like Claude to execute system queries and retrieve detailed information about the operating system, running processes, network connections, and more.
+The Osquery MCP Server acts as an intelligent bridge between AI models and your operating system. It translates natural language questions like "Why is my fan running so hot?" or "What's using all my memory?" into precise Osquery SQL queries, giving AI assistants the ability to diagnose system issues, monitor performance, and investigate security concerns.
 
 ## Features
 
-- Execute arbitrary Osquery SQL queries through MCP tools
-- List available Osquery tables
-- Synchronous STDIO-based communication
-- Spring Boot 3.5 with Java 21 support
-- GraalVM Native Image compatible
+- **Natural Language System Diagnostics**: Ask questions like "What's using my CPU?" and get intelligent answers
+- **8 Specialized Tools** for common diagnostic scenarios:
+  - Execute custom Osquery SQL queries
+  - Get table schemas and available columns
+  - Find high CPU/memory usage processes
+  - Analyze network connections
+  - Check system temperature and fan speeds (macOS)
+  - Access example queries for common problems
+- **Smart Query Assistance**: Built-in examples and schema discovery help the AI construct better queries
+- **STDIO-based MCP Integration**: Works seamlessly with Claude Desktop and other MCP-compatible AI tools
+- **Spring Boot 3.5 with Java 21**: Modern, efficient, and maintainable codebase
+- **Comprehensive Testing**: Includes automated tests with debug logging support
 
 ## Prerequisites
 
@@ -40,19 +47,33 @@ cd OsqueryMcpServer
 
 ## Usage
 
-The server operates in STDIO mode and provides two main tools:
+The server operates in STDIO mode and provides 8 specialized tools for system diagnostics:
 
-### 1. Execute Osquery SQL
-Execute any valid Osquery SQL query:
-```sql
-SELECT name, pid, uid FROM processes WHERE name LIKE '%java%'
-```
+### Core Tools
+- **`executeOsquery(sql)`**: Execute any valid Osquery SQL query
+- **`listOsqueryTables()`**: Get all available Osquery tables on your system
+- **`getTableSchema(tableName)`**: Discover columns and types for any table
 
-### 2. List Osquery Tables
-Get a list of all available Osquery tables on your system:
-```
-.tables
-```
+### Diagnostic Tools
+- **`getHighCpuProcesses()`**: Find processes consuming the most CPU
+- **`getHighMemoryProcesses()`**: Find processes using the most memory
+- **`getNetworkConnections()`**: Show active network connections with process info
+- **`getTemperatureInfo()`**: Get system temperature and fan speeds (macOS)
+
+### Helper Tools
+- **`getCommonQueries()`**: Get example queries for common diagnostic scenarios
+
+## Example AI Interactions
+
+Instead of writing complex SQL, you can now ask natural language questions:
+
+**"Why is my computer running slowly?"** → AI uses `getHighCpuProcesses()` and `getHighMemoryProcesses()`
+
+**"What's connecting to the internet?"** → AI uses `getNetworkConnections()`
+
+**"Why is my fan so loud?"** → AI uses `getTemperatureInfo()` to check system temps
+
+**"Show me all Chrome processes"** → AI uses `executeOsquery()` with schema discovery
 
 ## Configuration
 
@@ -126,26 +147,37 @@ The project includes GraalVM Native Image support:
 ./gradlew nativeCompile
 ```
 
-## Example Queries
+## Built-in Diagnostic Queries
 
-Here are some useful Osquery queries you can execute through this server:
+The server includes pre-built queries for common diagnostic scenarios. Use `getCommonQueries()` to see all available examples:
 
+### Performance Analysis
 ```sql
--- List all running processes
-SELECT name, pid, uid, cmdline FROM processes;
+-- Top CPU consuming processes
+SELECT name, pid, uid, cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 10
 
--- Show network connections
-SELECT * FROM listening_ports;
-
--- Get system information
-SELECT * FROM system_info;
-
--- List installed packages (macOS)
-SELECT name, version FROM homebrew_packages;
-
--- Check user accounts
-SELECT username, uid, gid, directory FROM users;
+-- Memory usage by process  
+SELECT name, pid, resident_size, total_size FROM processes ORDER BY resident_size DESC LIMIT 10
 ```
+
+### Network Analysis
+```sql
+-- Active network connections
+SELECT pid, local_address, local_port, remote_address, remote_port, state 
+FROM process_open_sockets WHERE state = 'ESTABLISHED'
+```
+
+### System Information
+```sql
+-- Overall system info
+SELECT hostname, cpu_brand, physical_memory, hardware_vendor, hardware_model FROM system_info
+
+-- Recent file changes
+SELECT path, mtime, size FROM file WHERE path LIKE '/Users/%' 
+AND mtime > (strftime('%s', 'now') - 3600)
+```
+
+The AI can use these as templates or call the specialized diagnostic tools directly.
 
 ## Contributing
 
