@@ -10,10 +10,13 @@ The **Osquery MCP Server** is a Spring Boot application that acts as an intellig
 
 ## Architecture
 
-- **Spring Boot 3.5** with **Java 21**
+- **Spring Boot 3.5** with **Java 21** (uses Java 17+ features)
 - **Model Context Protocol (MCP)** server using Spring AI's MCP starter
 - **STDIO-based communication** for integration with Claude Desktop and other MCP tools
 - **8 specialized diagnostic tools** exposed via `@Tool` annotations
+- **ProcessBuilder** for robust process management with proper resource handling
+- **Query timeouts**: 30 seconds for queries, 5 seconds for version checks
+- **Execution time logging** for performance monitoring
 
 ## Available Tools
 
@@ -66,11 +69,22 @@ When adding new `@Tool` methods to `OsqueryService`:
 - Production: Console logging disabled for STDIO compatibility
 - Testing: Debug logs enabled and written to `test-osquery-mcp.log`
 - Uncomment debug lines in `application.properties` for production debugging
+- Query execution times are logged at debug level for performance monitoring
+- Test log files are excluded from version control via .gitignore
 
 ### Security Considerations
 - This tool executes system commands with user privileges
 - Designed for trusted AI assistant use, not public exposure
 - Osquery is read-only by design, but be mindful of information disclosure
+
+### Implementation Details
+- **ProcessBuilder** is used instead of Runtime.exec() for better resource management
+- **Text blocks** (Java 15+) for multi-line SQL queries improve readability
+- **`.formatted()`** method (Java 15+) replaces String.format() for cleaner code
+- **Proper timeout handling** prevents hanging processes (30s for queries, 5s for version check)
+- **InterruptedException** is handled separately with thread interruption
+- **Query execution times** are tracked and logged for performance monitoring
+- **Error streams** are properly captured and returned for better diagnostics
 
 ## Common Tasks
 

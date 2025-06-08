@@ -18,8 +18,16 @@ The Osquery MCP Server acts as an intelligent bridge between AI models and your 
   - Access example queries for common problems
 - **Smart Query Assistance**: Built-in examples and schema discovery help the AI construct better queries
 - **STDIO-based MCP Integration**: Works seamlessly with Claude Desktop and other MCP-compatible AI tools
-- **Spring Boot 3.5 with Java 21**: Modern, efficient, and maintainable codebase
+- **Spring Boot 3.5 with Java 21**: Modern, efficient, and maintainable codebase using Java 17+ features
 - **Comprehensive Testing**: Includes automated tests with debug logging support
+
+## Performance & Reliability
+
+- **Query Timeouts**: Prevents hanging with 30-second timeout for queries, 5-second for version checks
+- **Process Management**: Uses ProcessBuilder for robust resource handling and proper cleanup
+- **Execution Time Logging**: Tracks query performance for monitoring and debugging
+- **Error Handling**: Captures and returns detailed error messages from failed queries
+- **Resource Safety**: Automatically destroys processes that exceed timeout limits
 
 ## Prerequisites
 
@@ -147,7 +155,7 @@ The server includes pre-built queries for common diagnostic scenarios. Use `getC
 ### Performance Analysis
 ```sql
 -- Top CPU consuming processes
-SELECT name, pid, uid, cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 10
+SELECT name, pid, uid, (user_time + system_time) AS cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 10
 
 -- Memory usage by process  
 SELECT name, pid, resident_size, total_size FROM processes ORDER BY resident_size DESC LIMIT 10
