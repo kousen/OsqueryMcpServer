@@ -44,9 +44,10 @@ class OsqueryServiceTest {
     void testInvalidQuery() {
         String result = osqueryService.executeOsquery("INVALID SQL QUERY");
         
-        // Osquery returns empty JSON array (with newlines) for invalid queries
+        // With ProcessBuilder, we now properly capture error messages
         assertThat(result).isNotNull();
-        assertThat(result.trim()).isEqualTo("[\n\n]");
+        assertThat(result).startsWith("Error:");
+        assertThat(result).contains("syntax error");
     }
 
     @Test
