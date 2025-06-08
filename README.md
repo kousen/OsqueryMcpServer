@@ -4,7 +4,7 @@ A Spring Boot application that provides a Model Context Protocol (MCP) server in
 
 ## Overview
 
-The Osquery MCP Server acts as an intelligent bridge between AI models and your operating system. It translates natural language questions like "Why is my fan running so hot?" or "What's using all my memory?" into precise Osquery SQL queries, giving AI assistants the ability to diagnose system issues, monitor performance, and investigate security concerns.
+The Osquery MCP Server acts as an intelligent bridge between AI models and your operating system. It translates natural language questions like "Why is my fan running so hot?" or "What's using all my memory?" into precise Osquery SQL queries, allowing AI assistants to diagnose system issues, monitor performance, and investigate security concerns.
 
 ## Features
 
@@ -55,7 +55,7 @@ cd OsqueryMcpServer
 
 ## Usage
 
-The server operates in STDIO mode and provides 8 specialized tools for system diagnostics:
+The server operates in STDIO mode and provides eight specialized tools for system diagnostics:
 
 ### Core Tools
 - **`executeOsquery(sql)`**: Execute any valid Osquery SQL query
@@ -155,10 +155,10 @@ The server includes pre-built queries for common diagnostic scenarios. Use `getC
 ### Performance Analysis
 ```sql
 -- Top CPU consuming processes
-SELECT name, pid, uid, (user_time + system_time) AS cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 10
+SELECT name, pid, uid, (user_time + system_time) AS cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 10;
 
 -- Memory usage by process  
-SELECT name, pid, resident_size, total_size FROM processes ORDER BY resident_size DESC LIMIT 10
+SELECT name, pid, resident_size, total_size FROM processes ORDER BY resident_size DESC LIMIT 10;
 ```
 
 ### Network Analysis
@@ -171,7 +171,7 @@ FROM process_open_sockets WHERE state = 'ESTABLISHED'
 ### System Information
 ```sql
 -- Overall system info
-SELECT hostname, cpu_brand, physical_memory, hardware_vendor, hardware_model FROM system_info
+SELECT hostname, cpu_brand, physical_memory, hardware_vendor, hardware_model FROM system_info;
 
 -- Recent file changes
 SELECT path, mtime, size FROM file WHERE path LIKE '/Users/%' 
