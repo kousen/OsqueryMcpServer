@@ -42,6 +42,7 @@ public class OsqueryService {
             logger.error("Osquery is not available. Please install osquery: https://osquery.io/downloads/", e);
         }
     }
+
     @Tool(description = """
          Execute osquery SQL queries to inspect system state.
          Query processes, users, network connections, and other OS data.
