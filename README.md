@@ -9,12 +9,13 @@ The Osquery MCP Server acts as an intelligent bridge between AI models and your 
 ## Features
 
 - **Natural Language System Diagnostics**: Ask questions like "What's using my CPU?" and get intelligent answers
-- **8 Specialized Tools** for common diagnostic scenarios:
+- **9 Specialized Tools** for common diagnostic scenarios:
   - Execute custom Osquery SQL queries
   - Get table schemas and available columns
   - Find high CPU/memory usage processes
   - Analyze network connections
   - Check system temperature and fan speeds (macOS)
+  - Get comprehensive system health summary
   - Access example queries for common problems
 - **Smart Query Assistance**: Built-in examples and schema discovery help the AI construct better queries
 - **STDIO-based MCP Integration**: Works seamlessly with Claude Desktop and other MCP-compatible AI tools
@@ -55,7 +56,7 @@ cd OsqueryMcpServer
 
 ## Usage
 
-The server operates in STDIO mode and provides eight specialized tools for system diagnostics:
+The server operates in STDIO mode and provides nine specialized tools for system diagnostics:
 
 ### Core Tools
 - **`executeOsquery(sql)`**: Execute any valid Osquery SQL query
@@ -70,6 +71,7 @@ The server operates in STDIO mode and provides eight specialized tools for syste
 
 ### Helper Tools
 - **`getCommonQueries()`**: Get example queries for common diagnostic scenarios
+- **`getSystemHealthSummary()`**: Get comprehensive overview of CPU, memory, disk, network, and temperature
 
 ## Example AI Interactions
 
@@ -82,6 +84,8 @@ Instead of writing complex SQL, you can now ask natural language questions:
 **"Why is my fan so loud?"** → AI uses `getTemperatureInfo()` to check system temps
 
 **"Show me all Chrome processes"** → AI uses `executeOsquery()` with schema discovery
+
+**"Give me an overall system health check"** → AI uses `getSystemHealthSummary()` for comprehensive diagnostics
 
 ## Configuration
 

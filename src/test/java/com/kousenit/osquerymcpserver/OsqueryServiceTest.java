@@ -74,6 +74,53 @@ class OsqueryServiceTest {
     }
     
     @Test
+    void getCommonQueries() {
+        String result = osqueryService.getCommonQueries();
+        
+        System.out.println("Common queries (first 200 chars): " + 
+            result.substring(0, Math.min(result.length(), 200)));
+        
+        // Should contain example queries
+        assertThat(result).isNotNull();
+        assertThat(result).contains("Common diagnostic queries:");
+        assertThat(result).contains("CPU consuming processes");
+        assertThat(result).contains("Memory usage");
+        assertThat(result).contains("Network connections");
+    }
+    
+    @Test
+    void getHighMemoryProcesses() {
+        String result = osqueryService.getHighMemoryProcesses();
+        
+        System.out.println("High memory processes: " + result);
+        
+        // Should return process memory information
+        assertThat(result).isNotNull();
+        assertThat(result).contains("[");
+        // Check for memory-specific fields
+        assertThat(result).satisfiesAnyOf(
+            r -> assertThat(r).contains("resident_mb"),
+            r -> assertThat(r).contains("Error:")
+        );
+    }
+    
+    @Test
+    void getNetworkConnections() {
+        String result = osqueryService.getNetworkConnections();
+        
+        System.out.println("Network connections (first 500 chars): " + 
+            result.substring(0, Math.min(result.length(), 500)));
+        
+        // Should return network connection information
+        assertThat(result).isNotNull();
+        assertThat(result).satisfiesAnyOf(
+            r -> assertThat(r).contains("local_port"),
+            r -> assertThat(r).contains("[]"), // Empty array if no connections
+            r -> assertThat(r).contains("Error:")
+        );
+    }
+    
+    @Test
     void getTemperatureInfo() {
         String result = osqueryService.getTemperatureInfo();
         

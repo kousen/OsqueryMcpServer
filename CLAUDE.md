@@ -13,7 +13,7 @@ The **Osquery MCP Server** is a Spring Boot application that acts as an intellig
 - **Spring Boot 3.5** with **Java 21** (uses Java 17+ features)
 - **Model Context Protocol (MCP)** server using Spring AI's MCP starter
 - **STDIO-based communication** for integration with Claude Desktop and other MCP tools
-- **8 specialized diagnostic tools** exposed via `@Tool` annotations
+- **9 specialized diagnostic tools** exposed via `@Tool` annotations
 - **ProcessBuilder** for robust process management with proper resource handling
 - **Query timeouts**: 30 seconds for queries, 5 seconds for version checks
 - **Execution time logging** for performance monitoring
@@ -33,6 +33,7 @@ The **Osquery MCP Server** is a Spring Boot application that acts as an intellig
 
 ### Helper Tools
 - `getCommonQueries()` - Example queries for common scenarios
+- `getSystemHealthSummary()` - Comprehensive overview of CPU, memory, disk, network, and temperature
 
 ## Project Structure
 
@@ -85,6 +86,8 @@ When adding new `@Tool` methods to `OsqueryService`:
 - **InterruptedException** is handled separately with thread interruption
 - **Query execution times** are tracked and logged for performance monitoring
 - **Error streams** are properly captured and returned for better diagnostics
+- **Platform-aware error handling** gracefully handles macOS-specific tables on other systems
+- **Correct table names** verified against actual osquery schema (e.g., `fan_speed_sensors` not `fan_control_sensors`)
 
 ## Common Tasks
 
