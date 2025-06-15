@@ -143,7 +143,7 @@ public class OsqueryService {
                SELECT path, blocks_available, blocks, inodes_free FROM mounts WHERE path = '/'
             
             7. Running services (macOS):
-               SELECT name, label, program, state FROM launchd WHERE state = 'running'
+               SELECT name, label, program, disabled FROM launchd WHERE disabled = '0'
             
             8. User sessions:
                SELECT user, host, time FROM logged_in_users
@@ -196,12 +196,58 @@ public class OsqueryService {
     public String getTemperatureInfo() {
         // This combines temperature and fan data
         String temps = executeOsquery("SELECT name, celsius FROM temperature_sensors");
-        String fans = executeOsquery("SELECT name, actual_speed, min_speed, max_speed FROM fan_control_sensors");
-        return """    
-            Temperature sensors:
+        String fans = executeOsquery("SELECT fan, name, actual, min, max FROM fan_speed_sensors");
+        
+        // Handle cases where tables don't exist (non-macOS or missing sensors)
+        if (temps.startsWith("Error:") && fans.startsWith("Error:")) {
+            return "Temperature and fan information not available on this system";
+        }
+        
+        StringBuilder result = new StringBuilder();
+        
+        if (!temps.startsWith("Error:")) {
+            result.append("Temperature sensors:\n").append(temps);
+        } else {
+            result.append("Temperature sensors: Not available");
+        }
+        
+        result.append("\n\n");
+        
+        if (!fans.startsWith("Error:")) {
+            result.append("Fan speeds:\n").append(fans);
+        } else {
+            result.append("Fan speeds: Not available");
+        }
+        
+        return result.toString();
+    }
+
+    @Tool(description = "Get overall system health summary")
+    public String getSystemHealthSummary() {
+        // Combine CPU, memory, disk, network data
+        String cpu = getHighCpuProcesses();
+        String memory = getHighMemoryProcesses();
+        String disk = executeOsquery(
+                "SELECT path, blocks_available, blocks, inodes_free FROM mounts WHERE path = '/'");
+        String network = getNetworkConnections();
+        String temperature = getTemperatureInfo();
+        return """
+            System Health Summary:
+            
+            CPU Usage:
             %s
             
-            Fan speeds:
-            %s""".formatted(temps, fans);
+            Memory Usage:
+            %s
+            
+            Disk Usage:
+            %s
+            
+            Network Connections:
+            %s
+            
+            Temperature and Fans:
+            %s
+            """.formatted(cpu, memory, disk, network, temperature);
     }
 }

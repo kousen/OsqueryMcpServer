@@ -15,7 +15,7 @@ class OsqueryServiceTest {
     private OsqueryService osqueryService;
 
     @Test
-    void testExecuteOsquery() {
+    void executeOsquery() {
         // Simple query to get osquery version
         String result = osqueryService.executeOsquery("SELECT version FROM osquery_info");
         
@@ -28,7 +28,7 @@ class OsqueryServiceTest {
     }
 
     @Test
-    void testListOsqueryTables() {
+    void listOsqueryTables() {
         String result = osqueryService.listOsqueryTables();
         
         System.out.println("Available tables (first 500 chars): " + 
@@ -41,7 +41,7 @@ class OsqueryServiceTest {
     }
 
     @Test
-    void testInvalidQuery() {
+    void invalidQuery() {
         String result = osqueryService.executeOsquery("INVALID SQL QUERY");
         
         // With ProcessBuilder, we now properly capture error messages
@@ -51,7 +51,7 @@ class OsqueryServiceTest {
     }
 
     @Test
-    void testGetTableSchema() {
+    void getTableSchema() {
         String result = osqueryService.getTableSchema("processes");
         
         System.out.println("Processes table schema: " + result);
@@ -63,7 +63,7 @@ class OsqueryServiceTest {
     }
 
     @Test
-    void testGetHighCpuProcesses() {
+    void getHighCpuProcesses() {
         String result = osqueryService.getHighCpuProcesses();
         
         System.out.println("High CPU processes: " + result);
@@ -71,5 +71,57 @@ class OsqueryServiceTest {
         // Should return process information
         assertThat(result).isNotNull();
         assertThat(result).contains("[");
+    }
+    
+    @Test
+    void getTemperatureInfo() {
+        String result = osqueryService.getTemperatureInfo();
+        
+        System.out.println("Temperature and fan info:\n" + result);
+        
+        // Should return temperature and fan information
+        assertThat(result).isNotNull();
+        
+        // Should contain temperature data or indicate it's not available
+        assertThat(result).satisfiesAnyOf(
+            r -> assertThat(r).contains("celsius"),
+            r -> assertThat(r).contains("Temperature sensors: Not available")
+        );
+        
+        // Should contain fan data or indicate it's not available  
+        assertThat(result).satisfiesAnyOf(
+            r -> assertThat(r).contains("actual"),
+            r -> assertThat(r).contains("Fan speeds: Not available")
+        );
+    }
+
+    @Test
+    void getSystemHealthSummary() {
+        String result = osqueryService.getSystemHealthSummary();
+
+        System.out.println("System health summary: " + result);
+
+        // Should return system health information
+        assertThat(result).isNotNull();
+        assertThat(result).contains("System Health Summary:");
+        assertThat(result).contains("CPU Usage:");
+        assertThat(result).contains("Memory Usage:");
+        assertThat(result).contains("Disk Usage:");
+        assertThat(result).contains("Network Connections:");
+        assertThat(result).contains("Temperature and Fans:");
+        
+        // Should not contain raw error messages
+        assertThat(result).doesNotContain("Error: no such table");
+        
+        // Should have actual data or "Not available" messages
+        assertThat(result).satisfiesAnyOf(
+            r -> assertThat(r).contains("cpu_percent"),
+            r -> assertThat(r).contains("CPU processes not available")
+        );
+        
+        assertThat(result).satisfiesAnyOf(
+            r -> assertThat(r).contains("resident_mb"),
+            r -> assertThat(r).contains("Memory processes not available")
+        );
     }
 }
