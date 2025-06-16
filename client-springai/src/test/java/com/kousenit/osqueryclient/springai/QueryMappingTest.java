@@ -142,7 +142,7 @@ class QueryMappingTest {
         assertThat(invokeMapQueryToTool("SELECT pid, name FROM processes WHERE cpu_time > 1000")).isEqualTo("osquery_cli_osquery_server_executeOsquery");
         
         // Just "SELECT" without proper SQL structure should still be detected
-        assertThat(invokeMapQueryToTool("SELECT")).isEqualTo("osquery_cli_osquery_server_getSystemHealthSummary"); // No " from " detected
+        assertThat(invokeMapQueryToTool("SELECT")).isEqualTo("osquery_cli_osquery_server_getSystemHealthSummary");
     }
 
     @ParameterizedTest

@@ -38,7 +38,7 @@ public class SpringAiOsqueryClientApplication {
             System.out.println("Spring AI MCP Client for Osquery");
             
             ToolCallback[] toolCallbacks = toolCallbackProvider.getToolCallbacks();
-            if (toolCallbacks == null || toolCallbacks.length == 0) {
+            if (toolCallbacks.length == 0) {
                 System.err.println("No MCP tools available. Make sure the server is configured properly.");
                 return;
             }
@@ -95,7 +95,6 @@ public class SpringAiOsqueryClientApplication {
             formatAndPrintResult(result, toolName);
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -209,7 +208,7 @@ public class SpringAiOsqueryClientApplication {
             JsonNode rootNode = objectMapper.readTree(result);
             
             // Extract the text content from the first element
-            if (rootNode.isArray() && rootNode.size() > 0) {
+            if (rootNode.isArray() && !rootNode.isEmpty()) {
                 JsonNode firstElement = rootNode.get(0);
                 if (firstElement.has("text")) {
                     String textContent = firstElement.get("text").asText();
@@ -235,8 +234,8 @@ public class SpringAiOsqueryClientApplication {
                     // Try to parse the text content as JSON
                     try {
                         JsonNode dataNode = objectMapper.readTree(textContent);
-                        if (dataNode.isArray() && dataNode.size() > 0) {
-                            printAsTable(dataNode, toolName);
+                        if (dataNode.isArray() && !dataNode.isEmpty()) {
+                            printAsTable(dataNode);
                         } else if (dataNode.isObject()) {
                             printAsKeyValue(dataNode);
                         } else {
@@ -259,34 +258,9 @@ public class SpringAiOsqueryClientApplication {
         }
     }
     
-    private JsonNode extractDataFromResponse(JsonNode rootNode) {
-        try {
-            // First, check if it's a simple string response
-            if (rootNode.isTextual()) {
-                String content = rootNode.asText();
-                // Try to parse as JSON
-                return objectMapper.readTree(content);
-            }
-            
-            // Handle the response structure from Spring AI MCP
-            if (rootNode.isArray() && rootNode.size() > 0) {
-                JsonNode firstElement = rootNode.get(0);
-                if (firstElement.has("text")) {
-                    String textContent = firstElement.get("text").asText();
-                    // Parse the escaped JSON string
-                    return objectMapper.readTree(textContent);
-                }
-            }
-            
-            return rootNode;
-        } catch (Exception e) {
-            // If all parsing fails, return null to indicate raw output should be used
-            return null;
-        }
-    }
     
-    private void printAsTable(JsonNode arrayNode, String toolName) {
-        if (arrayNode.size() == 0) {
+    private void printAsTable(JsonNode arrayNode) {
+        if (arrayNode.isEmpty()) {
             System.out.println("No results found.");
             return;
         }
@@ -350,7 +324,7 @@ public class SpringAiOsqueryClientApplication {
     }
     
     private void printAsKeyValue(JsonNode objectNode) {
-        Iterator<Map.Entry<String, JsonNode>> fields = objectNode.fields();
+        Iterator<Map.Entry<String, JsonNode>> fields = objectNode.properties().iterator();
         int maxKeyLength = 0;
         
         // Find max key length for alignment
@@ -360,7 +334,7 @@ public class SpringAiOsqueryClientApplication {
         }
         
         // Print key-value pairs
-        fields = objectNode.fields();
+        fields = objectNode.properties().iterator();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
             System.out.printf("%-" + (maxKeyLength + 2) + "s: %s\n", 
@@ -372,10 +346,10 @@ public class SpringAiOsqueryClientApplication {
         // The system health summary contains multiple sections with JSON arrays
         // Parse and format each section separately
         String[] lines = summaryText.split("\n");
-        
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i].trim();
-            
+
+        for (String s : lines) {
+            String line = s.trim();
+
             if (line.endsWith(":") && !line.startsWith("[")) {
                 // This is a section header
                 System.out.println("\n" + line);
@@ -383,8 +357,8 @@ public class SpringAiOsqueryClientApplication {
                 // This is JSON data - parse and format it
                 try {
                     JsonNode sectionData = objectMapper.readTree(line);
-                    if (sectionData.isArray() && sectionData.size() > 0) {
-                        printAsTable(sectionData, "");
+                    if (sectionData.isArray() && !sectionData.isEmpty()) {
+                        printAsTable(sectionData);
                     }
                 } catch (Exception e) {
                     // If parsing fails, just print the line

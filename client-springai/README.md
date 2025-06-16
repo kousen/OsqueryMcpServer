@@ -1,21 +1,21 @@
 # Spring AI MCP Client for Osquery
 
-A simplified MCP client implementation using Spring AI's auto-configuration capabilities that demonstrates the power of declarative MCP integration.
+A simplified MCP client implementation using Spring AI's autoconfiguration capabilities that demonstrates the power of declarative MCP integration.
 
 ## Overview
 
-This client demonstrates a **clean and simple** approach to creating an MCP client using Spring AI's auto-configuration. It leverages Spring AI's MCP starter to automatically handle:
+This client demonstrates a **clean and simple** approach to creating an MCP client using Spring AI's autoconfiguration. It leverages Spring AI's MCP starter to automatically handle:
 
 - ✅ **MCP protocol negotiation** - Automatic handshake and initialization
 - ✅ **Server process management** - Automatic subprocess lifecycle management  
 - ✅ **Tool discovery and registration** - Zero-code tool mapping via `SyncMcpToolCallbackProvider`
 - ✅ **Error handling and timeouts** - Built-in resilience and timeout management
-- ✅ **Connection management** - Automatic STDIO transport handling
+- ✅ **Connection management**—Automatic STDIO transport handling
 
 ## Architecture
 
 - **Spring Boot Application**: Main application using Spring AI MCP client starter
-- **Auto-configuration**: Tools are automatically discovered via `SyncMcpToolCallbackProvider` injection
+- **Autoconfiguration**: Tools are automatically discovered via `SyncMcpToolCallbackProvider` injection
 - **YAML Configuration**: Server connection details defined in `application.yml` 
 - **Query Mapping**: Simple logic to map natural language queries to prefixed tool names
 - **Zero Protocol Code**: No manual JSON-RPC, no manual process management
@@ -27,7 +27,7 @@ This client demonstrates a **clean and simple** approach to creating an MCP clie
 3. **Configuration-Driven**: YAML-based setup instead of hardcoded values
 4. **Better Error Handling**: Built into Spring AI framework with proper timeouts
 5. **Industry Standard**: Follows Spring Boot conventions and patterns
-6. **Proven Performance**: Tools execute quickly (1-3 seconds) matching Claude Desktop performance
+6. **Proven Performance**: Tools execute quickly (1–3 seconds) matching Claude Desktop performance
 
 ## Configuration
 
@@ -61,7 +61,7 @@ spring:
 - **`toolcallback.enabled: true`** - Essential for automatic tool discovery
 - **`type: SYNC`** - Use synchronous client for simple applications
 - **`request-timeout: 30s`** - Prevents hanging on slow queries
-- **STDIO transport** - Automatic subprocess management for the osquery server
+- **STDIO transport** — Automatic subprocess management for the osquery server
 
 ## Usage
 
@@ -212,34 +212,34 @@ The test suite includes:
 
 ## Dependencies
 
-- **Spring Boot 3.5.0** - Application framework
-- **Spring AI 1.0.0** - MCP client starter with auto-configuration
+- **Spring Boot 3.5.0**—Application framework
+- **Spring AI 1.0.0**—MCP client starter with autoconfiguration
 - **PicoCLI 4.7.5** - Command-line interface framework
-- **Jackson** - JSON parsing for output formatting
-- **JUnit 5 and AssertJ** - Testing framework
+- **Jackson**—JSON parsing for output formatting
+- **JUnit 5 and AssertJ**—Testing framework
 
 ### Critical Dependency Notes
 
 - **Spring AI BOM 1.0.0** - Ensures compatible versions of all Spring AI components
 - **MCP Client Starter** - Provides `SyncMcpToolCallbackProvider` and auto-configuration
 - **Java 21** - Required for Spring Boot 3.5.0 and modern Java features
-- **Jackson ObjectMapper** - Used for JSON parsing and formatting output
+- **Jackson ObjectMapper**—Used for JSON parsing and formatting output
 
 ## Comparison with Manual Implementation
 
-| Aspect | Manual Implementation | Spring AI Implementation |
-|--------|----------------------|--------------------------|
-| **Code Size** | ~250 lines across multiple files | ~150 lines in single file |
-| **MCP Protocol** | Manual JSON-RPC handling | Auto-handled by framework |
-| **Configuration** | Hardcoded in Java | YAML-based configuration |
-| **Error Handling** | Manual implementation | Built into framework |
-| **Process Management** | Manual subprocess handling | Auto-managed by Spring AI |
-| **Tool Discovery** | Manual tool name mapping | Automatic via `SyncMcpToolCallbackProvider` |
-| **Dependencies** | Minimal (Jackson, PicoCLI) | Spring ecosystem |
-| **Performance** | Custom timeout handling | Framework-managed timeouts |
-| **Maintainability** | High complexity | Low complexity |
-| **Learning Curve** | MCP protocol knowledge required | Spring Boot patterns |
-| **Reliability** | Custom error handling | Production-tested framework |
+| Aspect                 | Manual Implementation            | Spring AI Implementation                    |
+|------------------------|----------------------------------|---------------------------------------------|
+| **Code Size**          | ~250 lines across multiple files | ~150 lines in single file                   |
+| **MCP Protocol**       | Manual JSON-RPC handling         | Auto-handled by framework                   |
+| **Configuration**      | Hardcoded in Java                | YAML-based configuration                    |
+| **Error Handling**     | Manual implementation            | Built into framework                        |
+| **Process Management** | Manual subprocess handling       | Auto-managed by Spring AI                   |
+| **Tool Discovery**     | Manual tool name mapping         | Automatic via `SyncMcpToolCallbackProvider` |
+| **Dependencies**       | Minimal (Jackson, PicoCLI)       | Spring ecosystem                            |
+| **Performance**        | Custom timeout handling          | Framework-managed timeouts                  |
+| **Maintainability**    | High complexity                  | Low complexity                              |
+| **Learning Curve**     | MCP protocol knowledge required  | Spring Boot patterns                        |
+| **Reliability**        | Custom error handling            | Production-tested framework                 |
 
 ## Files
 
