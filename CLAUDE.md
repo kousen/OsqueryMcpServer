@@ -109,11 +109,11 @@ When adding new `@Tool` methods to `OsqueryService`:
 
 ## MCP Client Implementation
 
-The project includes a complete MCP client implementation using Spring AI's auto-configuration:
+The project includes a complete MCP client implementation using Spring AI's autoconfiguration:
 
 ### Spring AI MCP Client (`client-springai/` directory)
 
-A simplified implementation using Spring AI's MCP auto-configuration that demonstrates:
+A simplified implementation using Spring AI's MCP autoconfiguration that demonstrates:
 
 #### Key Features
 - **Minimal Code**: Clean ~150 line implementation with maximum functionality
@@ -161,7 +161,7 @@ Spring AI MCP automatically prefixes tool names:
 # Toggle raw/formatted with 'raw' command in interactive mode
 
 # Manual testing
-./manual-test.sh
+./test-client-springai.sh
 ```
 
 #### Output Formatting (NEW)
@@ -174,6 +174,8 @@ The Spring AI client now includes intelligent output formatting:
 #### Implementation Notes
 - **SyncMcpToolCallbackProvider**: Injected dependency providing all discovered tools
 - **Automatic Prefixing**: Tool names include client/server identifiers
+- **Modern Jackson APIs**: Uses current `properties().iterator()` instead of deprecated methods
+- **Clean Code**: Removed unused methods and parameters for maintainability
 - **Performance**: Matches Claude Desktop performance (1-3 seconds per query)
 - **Reliability**: Production-tested Spring AI framework handles all protocol details
 
