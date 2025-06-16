@@ -1,13 +1,16 @@
-# Osquery MCP Server
+# Osquery MCP Server & Client
 
-A Spring Boot application that provides a Model Context Protocol (MCP) server interface for [Osquery](https://osquery.io/), enabling AI assistants to answer system diagnostic questions using natural language.
+A complete Model Context Protocol (MCP) implementation for [Osquery](https://osquery.io/) that includes both a Spring Boot server and a Spring AI-based CLI client, enabling AI assistants to answer system diagnostic questions using natural language.
 
 ## Overview
 
 The Osquery MCP Server acts as an intelligent bridge between AI models and your operating system. It translates natural language questions like "Why is my fan running so hot?" or "What's using all my memory?" into precise Osquery SQL queries, allowing AI assistants to diagnose system issues, monitor performance, and investigate security concerns.
 
+The project includes a **complete Spring AI MCP client implementation** that demonstrates how to communicate with the server through the Model Context Protocol using Spring AI's auto-configuration, providing both programmatic access and an interactive CLI.
+
 ## Features
 
+### MCP Server
 - **Natural Language System Diagnostics**: Ask questions like "What's using my CPU?" and get intelligent answers
 - **9 Specialized Tools** for common diagnostic scenarios:
   - Execute custom Osquery SQL queries
@@ -20,7 +23,16 @@ The Osquery MCP Server acts as an intelligent bridge between AI models and your 
 - **Smart Query Assistance**: Built-in examples and schema discovery help the AI construct better queries
 - **STDIO-based MCP Integration**: Works seamlessly with Claude Desktop and other MCP-compatible AI tools
 - **Spring Boot 3.5 with Java 21**: Modern, efficient, and maintainable codebase using Java 17+ features
-- **Comprehensive Testing**: Includes automated tests with debug logging support
+
+### Spring AI MCP Client
+- **Spring AI Auto-Configuration**: Leverages Spring AI's MCP client starter for zero-configuration setup
+- **Interactive CLI**: REPL interface for exploratory system diagnostics
+- **Natural Language Processing**: Maps human questions to appropriate server tools
+- **Custom SQL Support**: Execute direct osquery commands through the MCP server
+- **Automatic Tool Discovery**: Tools discovered via `SyncMcpToolCallbackProvider` injection
+- **Built-in Error Handling**: Framework-managed timeouts and process management
+- **Declarative Configuration**: YAML-based setup for easy maintenance
+- **Comprehensive Testing**: Includes automated unit tests for query mapping logic
 
 ## Performance & Reliability
 
@@ -46,19 +58,69 @@ cd OsqueryMcpServer
 
 2. Build the project:
 ```bash
-./gradlew build
+./gradlew build        # Build server
+./gradlew bootJar      # Create executable JAR
+cd client-springai && ../gradlew build  # Build Spring AI client
 ```
 
-3. Run the application:
+3. Run the server:
 ```bash
 ./gradlew bootRun
 ```
 
+4. Test the Spring AI MCP client:
+```bash
+# Natural language queries
+cd client-springai && ../gradlew run --args="\"What's using my CPU?\""
+
+# Interactive mode
+../gradlew run --args="--interactive"
+
+# Custom SQL queries
+../gradlew run --args="\"SELECT name FROM system_info\""
+
+# Run test suite
+./test-client-springai.sh
+```
+
+5. Run tests:
+```bash
+./gradlew test --tests OsqueryServiceTest    # Server tests
+cd client-springai && ../gradlew test       # Spring AI client tests
+```
+
 ## Usage
 
+### MCP Server
 The server operates in STDIO mode and provides nine specialized tools for system diagnostics:
 
-### Core Tools
+### Spring AI MCP Client
+The client provides multiple ways to interact with the server:
+
+#### Natural Language Queries
+```bash
+cd client-springai
+../gradlew run --args="\"What's using my CPU?\""
+../gradlew run --args="\"Show network connections\""  
+../gradlew run --args="\"Why is my fan running?\""
+../gradlew run --args="\"Show system health\""
+```
+
+#### Custom SQL Queries
+```bash
+../gradlew run --args="\"SELECT name, pid, cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 5\""
+../gradlew run --args="\"SELECT * FROM system_info\""
+```
+
+#### Interactive Mode
+```bash
+../gradlew run --args="--interactive"
+# Then type queries interactively, 'help' for assistance, 'exit' to quit
+```
+
+### Server Tools Available
+
+#### Core Tools
 - **`executeOsquery(sql)`**: Execute any valid Osquery SQL query
 - **`listOsqueryTables()`**: Get all available Osquery tables on your system
 - **`getTableSchema(tableName)`**: Discover columns and types for any table
@@ -145,10 +207,31 @@ For Claude Desktop, add to your configuration:
 └── build.gradle.kts
 ```
 
+### Project Architecture
+
+```
+├── src/                                    # MCP Server (Spring Boot)
+│   ├── main/java/com/kousenit/osquerymcpserver/
+│   │   ├── OsqueryMcpServerApplication.java      # Main application
+│   │   └── OsqueryService.java                   # MCP tools
+│   └── test/java/com/kousenit/osquerymcpserver/
+│       └── OsqueryServiceTest.java               # Server tests
+├── client-springai/                        # Spring AI MCP Client
+│   ├── src/main/java/com/kousenit/osqueryclient/springai/
+│   │   └── SpringAiOsqueryClientApplication.java # CLI application
+│   ├── src/test/java/com/kousenit/osqueryclient/springai/
+│   │   └── QueryMappingTest.java                 # Unit tests
+│   ├── application.yml                          # Spring AI configuration
+│   └── test-client-springai.sh                  # Test runner
+└── build.gradle.kts                            # Server build config
+```
+
 ### Running Tests
 
 ```bash
-./gradlew test
+./gradlew test                           # Server tests
+cd client-springai && ../gradlew test    # Spring AI client tests
+./test-client-springai.sh                # Full client test suite
 ```
 
 

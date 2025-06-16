@@ -1,0 +1,28 @@
+spring:
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: osquery-cli
+        version: 1.0.0
+        request-timeout: 30s
+        type: SYNC
+        toolcallback:
+          enabled: true
+        stdio:
+          connections:
+            osquery-server:
+              command: java
+              args:
+                - -Dspring.main.banner-mode=off
+                - -Dlogging.pattern.console=
+                - -jar
+                - /Users/kennethkousen/Documents/AI/OsqueryMcpServer/build/libs/OsqueryMcpServer-1.0.jar
+  main:
+    banner-mode: off
+
+logging:
+  level:
+    root: WARN
+    com.kousenit: INFO
+    org.springframework.ai.mcp: WARN

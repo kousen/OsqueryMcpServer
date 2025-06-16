@@ -6,6 +6,8 @@ This document provides context and instructions for AI assistants working on the
 
 The **Osquery MCP Server** is a Spring Boot application that acts as an intelligent bridge between AI models and the operating system. It translates natural language questions like "Why is my fan running so hot?" or "What's using all my memory?" into precise Osquery SQL queries, enabling AI assistants to diagnose system issues, monitor performance, and investigate security concerns.
 
+The project now includes a **complete Spring AI MCP client implementation** that demonstrates how to communicate with the server through the Model Context Protocol using Spring AI's auto-configuration.
+
 **Key Point**: This is NOT a production service exposed to untrusted users. It's designed for local use by AI assistants to help with system diagnostics through natural language interaction.
 
 ## Architecture
@@ -38,7 +40,7 @@ The **Osquery MCP Server** is a Spring Boot application that acts as an intellig
 ## Project Structure
 
 ```
-src/
+src/                                          # MCP Server
 ├── main/
 │   ├── java/com/kousenit/osquerymcpserver/
 │   │   ├── OsqueryMcpServerApplication.java  # Main Spring Boot app
@@ -50,6 +52,21 @@ src/
     │   └── OsqueryServiceTest.java           # Comprehensive test suite
     └── resources/
         └── application-test.properties       # Test-specific logging config
+
+client-springai/                              # Spring AI MCP Client
+├── src/
+│   ├── main/java/com/kousenit/osqueryclient/springai/
+│   │   └── SpringAiOsqueryClientApplication.java  # Main Spring Boot app using Spring AI
+│   ├── resources/
+│   │   └── application.yml                   # Spring AI MCP configuration
+│   └── test/java/com/kousenit/osqueryclient/springai/
+│       └── QueryMappingTest.java             # Unit tests for query mapping
+├── build.gradle.kts                          # Spring AI client build config
+├── README.md                                 # Spring AI client documentation
+└── test-client-springai.sh                  # Test script for Spring AI client
+
+docs/
+└── plan.md                                   # Development roadmap
 ```
 
 ## Development Guidelines
@@ -64,7 +81,8 @@ When adding new `@Tool` methods to `OsqueryService`:
 ### Testing
 - Tests use `@ActiveProfiles("test")` for debug logging
 - Test output shows actual query results for verification
-- Run tests with: `./gradlew test --tests OsqueryServiceTest`
+- Run server tests with: `./gradlew test --tests OsqueryServiceTest`
+- Run client tests with: `cd client && ../gradlew test`
 
 ### Logging
 - Production: Console logging disabled for STDIO compatibility
@@ -89,13 +107,89 @@ When adding new `@Tool` methods to `OsqueryService`:
 - **Platform-aware error handling** gracefully handles macOS-specific tables on other systems
 - **Correct table names** verified against actual osquery schema (e.g., `fan_speed_sensors` not `fan_control_sensors`)
 
+## MCP Client Implementation
+
+The project includes a complete MCP client implementation using Spring AI's auto-configuration:
+
+### Spring AI MCP Client (`client-springai/` directory)
+
+A simplified implementation using Spring AI's MCP auto-configuration that demonstrates:
+
+#### Key Features
+- **Minimal Code**: Clean ~150 line implementation with maximum functionality
+- **Zero Protocol Code**: No JSON-RPC handling, automatic MCP negotiation
+- **Declarative Configuration**: YAML-based setup for easy maintenance
+- **Auto Tool Discovery**: Tools discovered via `SyncMcpToolCallbackProvider`
+- **Framework Integration**: Built-in error handling, timeouts, and process management
+
+#### Critical Configuration
+```yaml
+spring:
+  ai:
+    mcp:
+      client:
+        enabled: true
+        toolcallback:
+          enabled: true  # ESSENTIAL for tool discovery
+        type: SYNC
+        stdio:
+          connections:
+            osquery-server:
+              command: java
+              args: [-jar, ../build/libs/OsqueryMcpServer-1.0.jar]
+```
+
+#### Tool Naming Convention
+Spring AI MCP automatically prefixes tool names:
+- **Format**: `{client_name}_{server_name}_{tool_name}`
+- **Example**: `osquery_cli_osquery_server_getSystemHealthSummary`
+- **Auto-discovery**: All 9 tools discovered automatically
+
+#### Usage Examples
+```bash
+# Build and test
+./gradlew bootJar && cd client-springai && ./gradlew build
+
+# Quick test (formatted output by default)
+./gradlew run --args="\"system health\""
+
+# Raw JSON output
+./gradlew run --args="--raw \"system health\""
+
+# Interactive mode
+./gradlew run --args="--interactive"
+# Toggle raw/formatted with 'raw' command in interactive mode
+
+# Manual testing
+./manual-test.sh
+```
+
+#### Output Formatting (NEW)
+The Spring AI client now includes intelligent output formatting:
+- **Table format**: Process lists, network connections as ASCII tables
+- **Key-value format**: System info as aligned key-value pairs  
+- **Pretty JSON**: Complex nested data with proper indentation
+- **Raw mode**: Original JSON with `--raw` flag or 'raw' command
+
+#### Implementation Notes
+- **SyncMcpToolCallbackProvider**: Injected dependency providing all discovered tools
+- **Automatic Prefixing**: Tool names include client/server identifiers
+- **Performance**: Matches Claude Desktop performance (1-3 seconds per query)
+- **Reliability**: Production-tested Spring AI framework handles all protocol details
+
 ## Common Tasks
 
 ### Build and Run
 ```bash
-./gradlew build          # Build the project
-./gradlew bootRun        # Run locally
-./gradlew test           # Run tests
+./gradlew build          # Build the server
+./gradlew bootRun        # Run server locally
+./gradlew test           # Run server tests
+
+# Client operations
+cd client-springai
+../gradlew build         # Build the Spring AI client
+../gradlew test          # Run client tests
+../gradlew run --args="\"query\"" # Run client with query
 ```
 
 ### MCP Integration

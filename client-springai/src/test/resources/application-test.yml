@@ -1,0 +1,27 @@
+spring:
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: osquery-test-client
+        version: 1.0.0
+        type: SYNC
+        request-timeout: 30s
+        stdio:
+          connections:
+            osquery-server:
+              command: java
+              args:
+                - -Dspring.main.banner-mode=off
+                - -Dlogging.pattern.console=
+                - -jar
+                - ../build/libs/OsqueryMcpServer-1.0.jar
+
+logging:
+  level:
+    com.kousenit: DEBUG
+    org.springframework.ai.mcp: DEBUG
+    io.modelcontextprotocol: DEBUG
+    
+# Disable banner for cleaner test output
+spring.main.banner-mode: off
