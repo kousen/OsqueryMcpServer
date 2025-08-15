@@ -250,4 +250,47 @@ public class OsqueryService {
             %s
             """.formatted(cpu, memory, disk, network, temperature);
     }
+
+    @Tool(description = """
+         Identify suspicious processes that may indicate security issues or malware.
+         Returns processes with unusual characteristics like no parent process,
+         unusual network activity, or processes running from unusual locations.
+         Useful for answering 'Is my system compromised?' or 'What looks suspicious?'""")
+    public String getSuspiciousProcesses() {
+        return executeOsquery("""
+            SELECT p.name, p.pid, p.ppid, p.uid, p.path,
+            CASE 
+                WHEN p.ppid = 0 AND p.pid != 1 THEN 'No parent process'
+                WHEN p.path LIKE '/tmp/%' OR p.path LIKE '/var/tmp/%' THEN 'Running from temp directory'
+                WHEN p.name != SUBSTR(p.path, LENGTH(p.path) - LENGTH(p.name) + 1) THEN 'Process name mismatch'
+                ELSE 'Normal'
+            END as suspicious_reason,
+            (p.user_time + p.system_time) as cpu_time
+            FROM processes p
+            WHERE p.ppid = 0 AND p.pid != 1
+               OR p.path LIKE '/tmp/%' 
+               OR p.path LIKE '/var/tmp/%'
+               OR p.name != SUBSTR(p.path, LENGTH(p.path) - LENGTH(p.name) + 1)
+            ORDER BY cpu_time DESC
+            LIMIT 20
+            """);
+    }
+
+    @Tool(description = """
+         Get processes with high disk I/O activity that may be causing system slowdowns.
+         Returns processes sorted by disk read/write operations.
+         Useful for answering 'Why is my disk so busy?' or 'What's causing disk slowdown?'""")
+    public String getHighDiskIOProcesses() {
+        return executeOsquery("""
+            SELECT p.name, p.pid, p.uid,
+            ROUND(p.disk_bytes_read / 1024.0 / 1024.0, 2) AS disk_read_mb,
+            ROUND(p.disk_bytes_written / 1024.0 / 1024.0, 2) AS disk_write_mb,
+            ROUND((p.disk_bytes_read + p.disk_bytes_written) / 1024.0 / 1024.0, 2) AS total_disk_mb,
+            p.path
+            FROM processes p
+            WHERE p.disk_bytes_read > 0 OR p.disk_bytes_written > 0
+            ORDER BY (p.disk_bytes_read + p.disk_bytes_written) DESC
+            LIMIT 15
+            """);
+    }
 }

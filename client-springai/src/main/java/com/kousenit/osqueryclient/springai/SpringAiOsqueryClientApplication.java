@@ -20,6 +20,7 @@ public class SpringAiOsqueryClientApplication {
     private final ConfigurableApplicationContext context;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private boolean rawOutput = false;
+    private final List<String> queryHistory = new ArrayList<>();
     
     public SpringAiOsqueryClientApplication(SyncMcpToolCallbackProvider toolCallbackProvider, 
                                            ConfigurableApplicationContext context) {
@@ -75,6 +76,12 @@ public class SpringAiOsqueryClientApplication {
 
     private void processQuery(ToolCallback[] toolCallbacks, String query) {
         try {
+            // Add to history (limit to last 20 queries)
+            queryHistory.add(query);
+            if (queryHistory.size() > 20) {
+                queryHistory.remove(0);
+            }
+            
             String toolName = mapQueryToTool(query);
             
             ToolCallback tool = findTool(toolCallbacks, toolName);
@@ -126,6 +133,23 @@ public class SpringAiOsqueryClientApplication {
                 continue;
             }
             
+            if (input.equalsIgnoreCase("history")) {
+                showHistory();
+                continue;
+            }
+            
+            // Check for history recall (e.g., "!3" to recall 3rd from last query)
+            if (input.startsWith("!")) {
+                String recalled = recallFromHistory(input);
+                if (recalled != null) {
+                    System.out.println("Recalled: " + recalled);
+                    processQuery(toolCallbacks, recalled);
+                } else {
+                    System.out.println("History item not found. Use 'history' to see available queries.");
+                }
+                continue;
+            }
+            
             processQuery(toolCallbacks, input);
         }
         
@@ -160,8 +184,14 @@ public class SpringAiOsqueryClientApplication {
             return prefix + "executeOsquery";
         }
         
-        // Check for specific tool queries
-        if (lowerQuery.contains("cpu")) {
+        // Check for specific tool queries (order matters - security first)
+        if (lowerQuery.contains("suspicious") || lowerQuery.contains("security") || lowerQuery.contains("compromised") ||
+            lowerQuery.contains("malware") || lowerQuery.contains("unusual")) {
+            return prefix + "getSuspiciousProcesses";
+        } else if (lowerQuery.contains("disk") && (lowerQuery.contains("activity") || lowerQuery.contains("io") || 
+                   lowerQuery.contains("busy") || lowerQuery.contains("slowdown") || lowerQuery.contains("usage"))) {
+            return prefix + "getHighDiskIOProcesses";
+        } else if (lowerQuery.contains("cpu")) {
             return prefix + "getHighCpuProcesses";
         } else if (lowerQuery.contains("memory") || lowerQuery.contains("ram")) {
             return prefix + "getHighMemoryProcesses";
@@ -177,6 +207,40 @@ public class SpringAiOsqueryClientApplication {
             return prefix + "getSystemHealthSummary";
         }
     }
+    
+    private void showHistory() {
+        if (queryHistory.isEmpty()) {
+            System.out.println("No query history available.");
+            return;
+        }
+        
+        System.out.println("\\nQuery History (most recent first):");
+        for (int i = queryHistory.size() - 1; i >= 0; i--) {
+            int historyIndex = queryHistory.size() - i;
+            System.out.printf("  !%-2d %s\\n", historyIndex, queryHistory.get(i));
+        }
+        System.out.println("\\nUse !<number> to recall a query (e.g., !1 for most recent)");
+    }
+    
+    private String recallFromHistory(String input) {
+        try {
+            String numberStr = input.substring(1).trim();
+            if (numberStr.isEmpty()) {
+                // Just "!" means most recent
+                return queryHistory.isEmpty() ? null : queryHistory.get(queryHistory.size() - 1);
+            }
+            
+            int index = Integer.parseInt(numberStr);
+            if (index <= 0 || index > queryHistory.size()) {
+                return null;
+            }
+            
+            // Convert to 0-based index (1 = most recent = last item)
+            return queryHistory.get(queryHistory.size() - index);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 
     private void printHelp() {
         System.out.println("\nAvailable queries:");
@@ -186,14 +250,18 @@ public class SpringAiOsqueryClientApplication {
         System.out.println("  - Why is my fan running? / Check temperature");
         System.out.println("  - Show system health");
         System.out.println("  - List available tables");
+        System.out.println("  - Check for suspicious processes");
+        System.out.println("  - Show high disk I/O processes");
         System.out.println("\nSQL queries (examples):");
         System.out.println("  - SELECT name, pid, cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 5");
         System.out.println("  - SELECT * FROM system_info");
         System.out.println("\nCommands:");
-        System.out.println("  help  - Show this help");
-        System.out.println("  tools - List available MCP tools");
-        System.out.println("  raw   - Toggle raw/formatted output (current: " + (rawOutput ? "raw" : "formatted") + ")");
-        System.out.println("  exit  - Exit the program");
+        System.out.println("  help    - Show this help");
+        System.out.println("  tools   - List available MCP tools");
+        System.out.println("  raw     - Toggle raw/formatted output (current: " + (rawOutput ? "raw" : "formatted") + ")");
+        System.out.println("  history - Show query history");
+        System.out.println("  !<num>  - Recall query from history (e.g., !1 for most recent)");
+        System.out.println("  exit    - Exit the program");
         System.out.println();
     }
     

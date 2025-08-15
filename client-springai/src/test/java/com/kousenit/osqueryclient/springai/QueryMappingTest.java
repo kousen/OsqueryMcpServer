@@ -158,6 +158,48 @@ class QueryMappingTest {
         assertThat(result).isEqualTo(expectedTool);
     }
 
+    @ParameterizedTest
+    @DisplayName("Should map security/suspicious process queries correctly")
+    @ValueSource(strings = {
+        "suspicious processes",
+        "is my system compromised",
+        "what looks suspicious",
+        "security check",
+        "malware detection",
+        "unusual processes"
+    })
+    void shouldMapSecurityQueries(String query) throws Exception {
+        String result = invokeMapQueryToTool(query);
+        assertThat(result).isEqualTo("osquery_cli_osquery_server_getSuspiciousProcesses");
+    }
+
+    @ParameterizedTest
+    @DisplayName("Should map disk I/O related queries correctly")
+    @ValueSource(strings = {
+        "disk activity",
+        "high disk io",
+        "why is my disk busy",
+        "disk slowdown",
+        "what's writing to disk",
+        "disk usage processes"
+    })
+    void shouldMapDiskIOQueries(String query) throws Exception {
+        String result = invokeMapQueryToTool(query);
+        assertThat(result).isEqualTo("osquery_cli_osquery_server_getHighDiskIOProcesses");
+    }
+
+    @Test
+    @DisplayName("Should handle queries with multiple new keywords correctly")
+    void shouldHandleNewKeywordPriorities() throws Exception {
+        // Security keywords should have high priority
+        assertThat(invokeMapQueryToTool("check for suspicious disk activity"))
+            .isEqualTo("osquery_cli_osquery_server_getSuspiciousProcesses");
+        
+        // Disk keywords should match when no security keywords present
+        assertThat(invokeMapQueryToTool("show high disk usage and memory"))
+            .isEqualTo("osquery_cli_osquery_server_getHighDiskIOProcesses");
+    }
+
     /**
      * Uses reflection to call the private static mapQueryToTool method for testing
      */
