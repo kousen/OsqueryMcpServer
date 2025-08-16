@@ -259,7 +259,7 @@ public class OsqueryService {
     public String getSuspiciousProcesses() {
         return executeOsquery("""
             SELECT p.name, p.pid, p.ppid, p.uid, p.path,
-            CASE 
+            CASE
                 WHEN p.ppid = 0 AND p.pid != 1 THEN 'No parent process'
                 WHEN p.path LIKE '/tmp/%' OR p.path LIKE '/var/tmp/%' THEN 'Running from temp directory'
                 WHEN p.name != SUBSTR(p.path, LENGTH(p.path) - LENGTH(p.name) + 1) THEN 'Process name mismatch'
