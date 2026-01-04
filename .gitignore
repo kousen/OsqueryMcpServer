@@ -35,5 +35,8 @@ out/
 
 ### VS Code ###
 .vscode/
-/.claude/
+
+### Claude Code ###
+/.claude/*
+!/.claude/skills/
 test-osquery-mcp.log

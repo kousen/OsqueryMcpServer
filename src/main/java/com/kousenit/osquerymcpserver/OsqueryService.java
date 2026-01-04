@@ -258,19 +258,19 @@ public class OsqueryService {
          Useful for answering 'Is my system compromised?' or 'What looks suspicious?'""")
     public String getSuspiciousProcesses() {
         return executeOsquery("""
-            SELECT p.name, p.pid, p.ppid, p.uid, p.path,
+            SELECT p.name, p.pid, p.parent, p.uid, p.path,
             CASE
-                WHEN p.ppid = 0 AND p.pid != 1 THEN 'No parent process'
+                WHEN p.parent = 0 AND p.pid != 1 THEN 'No parent process'
                 WHEN p.path LIKE '/tmp/%' OR p.path LIKE '/var/tmp/%' THEN 'Running from temp directory'
-                WHEN p.name != SUBSTR(p.path, LENGTH(p.path) - LENGTH(p.name) + 1) THEN 'Process name mismatch'
-                ELSE 'Normal'
+                WHEN p.on_disk = 0 THEN 'Not on disk'
+                ELSE 'Flagged'
             END as suspicious_reason,
             (p.user_time + p.system_time) as cpu_time
             FROM processes p
-            WHERE p.ppid = 0 AND p.pid != 1
-               OR p.path LIKE '/tmp/%' 
+            WHERE (p.parent = 0 AND p.pid != 1)
+               OR p.path LIKE '/tmp/%'
                OR p.path LIKE '/var/tmp/%'
-               OR p.name != SUBSTR(p.path, LENGTH(p.path) - LENGTH(p.name) + 1)
+               OR p.on_disk = 0
             ORDER BY cpu_time DESC
             LIMIT 20
             """);
