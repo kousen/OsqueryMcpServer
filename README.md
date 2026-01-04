@@ -1,12 +1,18 @@
-# Osquery MCP Server & Client
+# Osquery MCP Server, Client & Skill
 
-A complete Model Context Protocol (MCP) implementation for [Osquery](https://osquery.io/) that includes both a Spring Boot server and a Spring AI-based CLI client, enabling AI assistants to answer system diagnostic questions using natural language.
+A complete implementation for integrating [Osquery](https://osquery.io/) with AI assistants, providing three approaches: an MCP server for Claude Desktop, a Spring AI client, and a Claude Code skill for direct CLI usage.
 
 ## Overview
 
-The Osquery MCP Server acts as an intelligent bridge between AI models and your operating system. It translates natural language questions like "Why is my fan running so hot?" or "What's using all my memory?" into precise Osquery SQL queries, allowing AI assistants to diagnose system issues, monitor performance, and investigate security concerns.
+This project enables AI assistants to answer system diagnostic questions like "Why is my fan running so hot?" or "What's using all my memory?" by translating natural language into Osquery SQL queries.
 
-The project includes a **complete Spring AI MCP client implementation** that demonstrates how to communicate with the server through the Model Context Protocol using Spring AI's auto-configuration, providing both programmatic access and an interactive CLI.
+**Three ways to use osquery with AI:**
+
+| Approach | Best For | How It Works |
+|----------|----------|--------------|
+| **MCP Server** | Claude Desktop | Spring Boot server communicates via MCP protocol |
+| **Spring AI Client** | Programmatic access | CLI client using Spring AI's MCP auto-configuration |
+| **Claude Code Skill** | Claude Code CLI | Direct `osqueryi` execution via Bash, no server needed |
 
 ## Features
 
@@ -33,6 +39,15 @@ The project includes a **complete Spring AI MCP client implementation** that dem
 - **Built-in Error Handling**: Framework-managed timeouts and process management
 - **Declarative Configuration**: YAML-based setup for easy maintenance
 - **Comprehensive Testing**: Includes automated unit tests for query mapping logic
+
+### Claude Code Skill
+- **Zero Overhead**: No server process required - runs `osqueryi` directly via Bash
+- **Natural Language Triggers**: Automatically activates for system diagnostic questions
+- **Predefined Query Templates**: Same diagnostic queries as the MCP server
+- **Baseline Guidance**: Includes "is this normal?" context for interpreting results
+- **Security Explanations**: Explains what makes processes suspicious (and common false positives)
+- **Platform Awareness**: Notes macOS vs Linux differences
+- **Easy Maintenance**: Just markdown files - edit and restart Claude Code
 
 ## Performance & Reliability
 
@@ -117,6 +132,40 @@ cd client-springai
 ../gradlew run --args="--interactive"
 # Then type queries interactively, 'help' for assistance, 'exit' to quit
 ```
+
+### Claude Code Skill
+
+The skill activates automatically when you ask system diagnostic questions in Claude Code:
+
+```
+> Why is my computer slow?
+> What's using all my memory?
+> Show me network connections
+> Are there any suspicious processes?
+> Why is my fan running?
+```
+
+#### Installation
+
+**Option 1: Project-level (included in this repo)**
+```bash
+# Already available in .claude/skills/osquery/ when working in this project
+```
+
+**Option 2: Personal (works across all projects)**
+```bash
+cp -r .claude/skills/osquery ~/.claude/skills/
+# Restart Claude Code to load the skill
+```
+
+#### How It Works
+
+The skill guides Claude to run `osqueryi` commands directly:
+```bash
+osqueryi --json "SELECT name, pid, resident_size FROM processes ORDER BY resident_size DESC LIMIT 10"
+```
+
+No server required - Claude executes queries via Bash and interprets the JSON results.
 
 ### Server Tools Available
 
@@ -223,6 +272,9 @@ For Claude Desktop, add to your configuration:
 │   │   └── QueryMappingTest.java                 # Unit tests
 │   ├── application.yml                          # Spring AI configuration
 │   └── test-client-springai.sh                  # Test runner
+├── .claude/skills/osquery/                 # Claude Code Skill
+│   ├── SKILL.md                                 # Skill definition & triggers
+│   └── queries.md                               # Query templates & baselines
 └── build.gradle.kts                            # Server build config
 ```
 
