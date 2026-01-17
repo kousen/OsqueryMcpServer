@@ -259,3 +259,277 @@ Example output shows column names and types available.
 | "Show me Java processes" | `SELECT name, pid, path, cmdline FROM processes WHERE name LIKE '%java%'` |
 | "What started in the last 10 minutes?" | `SELECT name, pid, start_time FROM processes WHERE start_time > (strftime('%s', 'now') - 600) ORDER BY start_time DESC` |
 | "Find Claude sessions" | `SELECT name, pid, cmdline FROM processes WHERE cmdline LIKE '%claude%'` |
+
+---
+
+# Advanced Queries
+
+These queries cover scenarios beyond basic system diagnostics. For full documentation, see https://osquery.readthedocs.io/en/stable/
+
+---
+
+## File Integrity and Hashing
+
+**Triggers**: "file changes", "modified files", "file hash", "checksum", "verify file"
+
+### Recently Modified Files
+
+```sql
+-- Files modified in the last hour in a specific directory
+SELECT path, mtime, size, uid FROM file
+WHERE path LIKE '/etc/%' AND mtime > (strftime('%s', 'now') - 3600)
+
+-- Modified config files (last 24 hours)
+SELECT path, mtime, size FROM file
+WHERE (path LIKE '/etc/%' OR path LIKE '%.conf')
+AND mtime > (strftime('%s', 'now') - 86400)
+ORDER BY mtime DESC
+```
+
+**Important**: Always constrain the `file` table with a `WHERE path` clause to avoid full filesystem scans.
+
+### File Hash Verification
+
+```sql
+-- Get all hashes for a specific file
+SELECT path, md5, sha1, sha256 FROM hash WHERE path = '/usr/bin/ssh'
+
+-- Hash all files in a directory
+SELECT path, sha256 FROM hash WHERE directory = '/usr/local/bin'
+
+-- Compare file to known hash
+SELECT path, sha256,
+CASE WHEN sha256 = 'expected_hash_here' THEN 'MATCH' ELSE 'MISMATCH' END as status
+FROM hash WHERE path = '/path/to/file'
+```
+
+---
+
+## Browser Extensions and Add-ons
+
+**Triggers**: "browser extensions", "Chrome extensions", "Firefox addons", "Safari extensions"
+
+```sql
+-- Chrome extensions
+SELECT name, identifier, version, description, path
+FROM chrome_extensions
+ORDER BY name
+
+-- Firefox addons
+SELECT name, identifier, version, active, visible, path
+FROM firefox_addons
+WHERE active = 1
+
+-- Safari extensions (macOS)
+SELECT name, identifier, version
+FROM safari_extensions
+```
+
+**Interpreting results**:
+- Check `identifier` for known malicious extension IDs
+- Extensions with generic names + recent install = suspicious
+- Extensions with excessive permissions warrant review
+
+---
+
+## Installed Applications
+
+**Triggers**: "installed apps", "what apps", "application list", "software inventory"
+
+```sql
+-- macOS: All installed applications
+SELECT name, bundle_identifier, bundle_version, path
+FROM apps
+ORDER BY name
+
+-- macOS: Recently installed apps (by install receipt)
+SELECT name, version, location, install_time
+FROM package_receipts
+ORDER BY install_time DESC
+LIMIT 20
+
+-- Linux: Installed packages (Debian/Ubuntu)
+SELECT name, version, source, size
+FROM deb_packages
+ORDER BY name
+
+-- Linux: Installed packages (RHEL/CentOS)
+SELECT name, version, release, arch
+FROM rpm_packages
+ORDER BY name
+```
+
+---
+
+## Startup and Persistence
+
+**Triggers**: "startup programs", "auto-start", "what runs at boot", "persistence", "launch agents"
+
+### macOS
+
+```sql
+-- Launch agents and daemons configured to run at load
+SELECT name, label, program, program_arguments, run_at_load, keep_alive
+FROM launchd
+WHERE run_at_load = '1'
+ORDER BY name
+
+-- Login items
+SELECT name, path, hidden FROM login_items
+```
+
+### Linux
+
+```sql
+-- Active systemd services
+SELECT id, description, active_state, sub_state, fragment_path
+FROM systemd_units
+WHERE active_state = 'active' AND sub_state = 'running'
+ORDER BY id
+
+-- Cron jobs (scheduled tasks)
+SELECT minute, hour, day_of_month, month, day_of_week, command, path
+FROM crontab
+```
+
+### Windows
+
+```sql
+-- Scheduled tasks
+SELECT name, action, path, enabled, last_run_time, next_run_time
+FROM scheduled_tasks
+WHERE enabled = 1
+ORDER BY name
+
+-- Startup items from registry
+SELECT name, path, source
+FROM startup_items
+```
+
+---
+
+## Docker and Containers
+
+**Triggers**: "Docker containers", "running containers", "container images", "Docker status"
+
+```sql
+-- Running containers
+SELECT id, name, image, state, status, created, started_at
+FROM docker_containers
+WHERE state = 'running'
+
+-- All containers (including stopped)
+SELECT id, name, image, state, status
+FROM docker_containers
+ORDER BY created DESC
+
+-- Docker images
+SELECT id, tags, size, created
+FROM docker_images
+ORDER BY created DESC
+
+-- Docker networks
+SELECT id, name, driver, scope
+FROM docker_networks
+
+-- Docker volumes
+SELECT name, driver, mount_point
+FROM docker_volumes
+```
+
+---
+
+## Advanced SQL Patterns
+
+### Using Regex
+
+```sql
+-- Find processes with suspicious command lines
+SELECT name, pid, cmdline FROM processes
+WHERE regex_match('(curl|wget).*\|.*sh', cmdline, 0) IS NOT NULL
+
+-- Find local network connections
+SELECT p.name, pos.remote_address, pos.remote_port
+FROM process_open_sockets pos
+JOIN processes p ON pos.pid = p.pid
+WHERE regex_match('^(192\.168\.|10\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[01]\.)', pos.remote_address, 0) IS NOT NULL
+```
+
+### Using CIDR Blocks
+
+```sql
+-- Find connections to private networks
+SELECT p.name, pos.remote_address, pos.remote_port
+FROM process_open_sockets pos
+JOIN processes p ON pos.pid = p.pid
+WHERE in_cidr_block(pos.remote_address, '10.0.0.0/8')
+   OR in_cidr_block(pos.remote_address, '172.16.0.0/12')
+   OR in_cidr_block(pos.remote_address, '192.168.0.0/16')
+
+-- Find connections outside private ranges (potential data exfiltration)
+SELECT p.name, pos.remote_address, pos.remote_port
+FROM process_open_sockets pos
+JOIN processes p ON pos.pid = p.pid
+WHERE pos.remote_address != ''
+  AND NOT in_cidr_block(pos.remote_address, '10.0.0.0/8')
+  AND NOT in_cidr_block(pos.remote_address, '172.16.0.0/12')
+  AND NOT in_cidr_block(pos.remote_address, '192.168.0.0/16')
+  AND NOT in_cidr_block(pos.remote_address, '127.0.0.0/8')
+```
+
+### Version Comparisons
+
+```sql
+-- Find outdated packages (version less than target)
+SELECT name, version FROM deb_packages
+WHERE version_compare(version, '2.0.0') < 0
+
+-- Chrome extensions older than a specific version
+SELECT name, version FROM chrome_extensions
+WHERE version_compare(version, '1.5.0') < 0
+```
+
+---
+
+## Security Investigation Queries
+
+**Triggers**: "security audit", "incident response", "forensics", "threat hunting"
+
+```sql
+-- Processes with open files in sensitive locations
+SELECT DISTINCT p.name, p.pid, pof.path
+FROM process_open_files pof
+JOIN processes p ON pof.pid = p.pid
+WHERE pof.path LIKE '/etc/%'
+   OR pof.path LIKE '%/.ssh/%'
+   OR pof.path LIKE '%/passwd%'
+
+-- Users with login shells
+SELECT username, uid, gid, shell, directory
+FROM users
+WHERE shell NOT LIKE '%nologin%' AND shell NOT LIKE '%false%'
+
+-- SUID binaries (potential privilege escalation)
+SELECT path, mode, uid, gid FROM file
+WHERE path LIKE '/usr/%' AND mode LIKE '%s%'
+
+-- Listening services on non-standard ports
+SELECT p.name, pos.local_port, pos.protocol
+FROM process_open_sockets pos
+JOIN processes p ON pos.pid = p.pid
+WHERE pos.state = 'LISTEN'
+  AND pos.local_port NOT IN (22, 80, 443, 8080, 3000, 5000)
+ORDER BY pos.local_port
+```
+
+---
+
+## Documentation References
+
+| Topic | URL |
+|-------|-----|
+| Complete schema reference | https://osquery.io/schema/ |
+| SQL functions | https://osquery.readthedocs.io/en/stable/introduction/sql/ |
+| File Integrity Monitoring | https://osquery.readthedocs.io/en/stable/deployment/file-integrity-monitoring/ |
+| Performance tuning | https://osquery.readthedocs.io/en/stable/deployment/performance-safety/ |
+| Process auditing | https://osquery.readthedocs.io/en/stable/deployment/process-auditing/ |
