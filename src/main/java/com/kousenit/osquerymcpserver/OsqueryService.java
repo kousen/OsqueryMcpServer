@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -224,31 +226,39 @@ public class OsqueryService {
 
     @Tool(description = "Get overall system health summary")
     public String getSystemHealthSummary() {
-        // Combine CPU, memory, disk, network data
-        String cpu = getHighCpuProcesses();
-        String memory = getHighMemoryProcesses();
-        String disk = executeOsquery(
-                "SELECT path, blocks_available, blocks, inodes_free FROM mounts WHERE path = '/'");
-        String network = getNetworkConnections();
-        String temperature = getTemperatureInfo();
-        return """
-            System Health Summary:
-            
-            CPU Usage:
-            %s
-            
-            Memory Usage:
-            %s
-            
-            Disk Usage:
-            %s
-            
-            Network Connections:
-            %s
-            
-            Temperature and Fans:
-            %s
-            """.formatted(cpu, memory, disk, network, temperature);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var cpuFuture = CompletableFuture.supplyAsync(this::getHighCpuProcesses, executor);
+            var memoryFuture = CompletableFuture.supplyAsync(this::getHighMemoryProcesses, executor);
+            var diskFuture = CompletableFuture.supplyAsync(
+                    () -> executeOsquery("SELECT path, blocks_available, blocks, inodes_free FROM mounts WHERE path = '/'"),
+                    executor);
+            var networkFuture = CompletableFuture.supplyAsync(this::getNetworkConnections, executor);
+            var temperatureFuture = CompletableFuture.supplyAsync(this::getTemperatureInfo, executor);
+
+            return """
+                System Health Summary:
+
+                CPU Usage:
+                %s
+
+                Memory Usage:
+                %s
+
+                Disk Usage:
+                %s
+
+                Network Connections:
+                %s
+
+                Temperature and Fans:
+                %s
+                """.formatted(
+                    cpuFuture.join(),
+                    memoryFuture.join(),
+                    diskFuture.join(),
+                    networkFuture.join(),
+                    temperatureFuture.join());
+        }
     }
 
     @Tool(description = """

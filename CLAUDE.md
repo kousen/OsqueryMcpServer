@@ -10,15 +10,26 @@ The project now includes a **complete Spring AI MCP client implementation** that
 
 **Key Point**: This is NOT a production service exposed to untrusted users. It's designed for local use by AI assistants to help with system diagnostics through natural language interaction.
 
+**Bigger Picture**: A JavaFX voice client (in `~/Documents/AI/starfleet-voice-interface`) transcribes audio and connects to this MCP server. The end goal is Star Trek-style interaction: hold a button, say "Computer, run a level 1 diagnostic," and the MCP server does the work. This makes native image startup time critical — the server needs to respond instantly when the voice client launches it. The all-Java stack (JavaFX client + Spring Boot MCP server + GraalVM native binary) is a key architectural advantage.
+
 ## Architecture
 
-- **Spring Boot 3.5** with **Java 21** (uses Java 17+ features)
+- **Spring Boot 4.0.1** with **Java 25** (GraalVM CE 25)
+- **Spring AI 2.0.0-M2** for MCP protocol support
 - **Model Context Protocol (MCP)** server using Spring AI's MCP starter
 - **STDIO-based communication** for integration with Claude Desktop and other MCP tools
-- **9 specialized diagnostic tools** exposed via `@Tool` annotations
+- **GraalVM native image support** — ~36ms startup for instant MCP responses
+- **11 specialized diagnostic tools** exposed via `@Tool` annotations
+- **Virtual threads** for parallel query execution in `getSystemHealthSummary()`
 - **ProcessBuilder** for robust process management with proper resource handling
 - **Query timeouts**: 30 seconds for queries, 5 seconds for version checks
 - **Execution time logging** for performance monitoring
+- **Jackson 3** (`tools.jackson` packages) in the client
+
+## Branch Strategy
+
+- **`main`**: Stable release on Spring Boot 3.5 / Spring AI 1.0 / Java 21
+- **`upgrade/spring-ai-2.0`**: Spring Boot 4.0.1 / Spring AI 2.0.0-M2 / Java 25 / GraalVM native image — will merge when Spring AI 2.0 goes GA
 
 ## Available Tools
 
@@ -30,12 +41,14 @@ The project now includes a **complete Spring AI MCP client implementation** that
 ### Diagnostic Tools
 - `getHighCpuProcesses()` - Find CPU-intensive processes
 - `getHighMemoryProcesses()` - Find memory-intensive processes
+- `getHighDiskIOProcesses()` - Find processes with high disk I/O activity
 - `getNetworkConnections()` - Show active network connections
 - `getTemperatureInfo()` - System temperature and fan speeds (macOS)
+- `getSuspiciousProcesses()` - Identify potentially suspicious processes
 
 ### Helper Tools
 - `getCommonQueries()` - Example queries for common scenarios
-- `getSystemHealthSummary()` - Comprehensive overview of CPU, memory, disk, network, and temperature
+- `getSystemHealthSummary()` - Comprehensive overview of CPU, memory, disk, network, and temperature (runs 5 queries in parallel via virtual threads)
 
 ## Project Structure
 
@@ -81,8 +94,9 @@ When adding new `@Tool` methods to `OsqueryService`:
 ### Testing
 - Tests use `@ActiveProfiles("test")` for debug logging
 - Test output shows actual query results for verification
-- Run server tests with: `./gradlew test --tests OsqueryServiceTest`
-- Run client tests with: `cd client && ../gradlew test`
+- Run server tests with: `./gradlew :test`
+- Run client tests with: `./gradlew :client-springai:test`
+- Run all tests with: `./gradlew build`
 
 ### Logging
 - Production: Console logging disabled for STDIO compatibility
@@ -106,6 +120,56 @@ When adding new `@Tool` methods to `OsqueryService`:
 - **Error streams** are properly captured and returned for better diagnostics
 - **Platform-aware error handling** gracefully handles macOS-specific tables on other systems
 - **Correct table names** verified against actual osquery schema (e.g., `fan_speed_sensors` not `fan_control_sensors`)
+- **Virtual threads** in `getSystemHealthSummary()` run 5 osquery calls in parallel via `Executors.newVirtualThreadPerTaskExecutor()` and `CompletableFuture.supplyAsync()`
+
+## Build Configuration
+
+### Dependency Management (Spring Boot 4 / upgrade branch)
+
+Spring Boot 4 drops the `io.spring.dependency-management` plugin. Dependencies are managed with Gradle-native `platform()` BOMs:
+
+```kotlin
+dependencies {
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.1"))
+    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0-M2"))
+    // ...
+}
+```
+
+Spring AI 2.0.0-M2 requires the Spring Milestones repository:
+
+```kotlin
+repositories {
+    mavenCentral()
+    maven { url = uri("https://repo.spring.io/milestone") }
+}
+```
+
+### GraalVM Native Image
+
+The server supports GraalVM native image compilation for sub-200ms startup:
+
+```bash
+# Requires GraalVM CE 25 (install via SDKMAN: sdk install java 25.0.2-graalce)
+sdk use java 25.0.2-graalce
+./gradlew nativeCompile --no-configuration-cache
+```
+
+The `--no-configuration-cache` flag is required due to a known incompatibility between the GraalVM buildtools plugin 0.10.6 and Gradle 9's configuration cache.
+
+**Performance**: The native binary starts and responds to MCP requests in ~36ms (vs several seconds for JVM startup).
+
+**Binary location**: `build/native/nativeCompile/OsqueryMcpServer`
+
+### Jackson 3 (Client)
+
+Spring Boot 4 ships Jackson 3 with new Maven coordinates and API changes:
+- **Group ID**: `com.fasterxml.jackson.core` → `tools.jackson.core`
+- **ObjectMapper**: `new ObjectMapper()` → `JsonMapper.builder().build()` (immutable builder)
+- **Exceptions**: `JsonProcessingException` (checked) → `JacksonException` (unchecked)
+- **Import prefix**: `com.fasterxml.jackson` → `tools.jackson`
+- **API**: `fieldNames()` → `propertyNames()` (returns `Iterable` instead of `Iterator`)
+- **Stable API**: `properties().iterator()` works unchanged in Jackson 3
 
 ## MCP Client Implementation
 
@@ -143,7 +207,7 @@ spring:
 Spring AI MCP automatically prefixes tool names:
 - **Format**: `{client_name}_{server_name}_{tool_name}`
 - **Example**: `osquery_cli_osquery_server_getSystemHealthSummary`
-- **Auto-discovery**: All 9 tools discovered automatically
+- **Auto-discovery**: All 11 tools discovered automatically
 
 #### Usage Examples
 ```bash
@@ -164,17 +228,17 @@ Spring AI MCP automatically prefixes tool names:
 ./test-client-springai.sh
 ```
 
-#### Output Formatting (NEW)
-The Spring AI client now includes intelligent output formatting:
+#### Output Formatting
+The Spring AI client includes intelligent output formatting:
 - **Table format**: Process lists, network connections as ASCII tables
-- **Key-value format**: System info as aligned key-value pairs  
+- **Key-value format**: System info as aligned key-value pairs
 - **Pretty JSON**: Complex nested data with proper indentation
 - **Raw mode**: Original JSON with `--raw` flag or 'raw' command
 
 #### Implementation Notes
 - **SyncMcpToolCallbackProvider**: Injected dependency providing all discovered tools
 - **Automatic Prefixing**: Tool names include client/server identifiers
-- **Modern Jackson APIs**: Uses current `properties().iterator()` instead of deprecated methods
+- **Jackson 3 APIs**: Uses `JsonMapper.builder().build()`, `propertyNames()`, and `JacksonException`
 - **Clean Code**: Removed unused methods and parameters for maintainability
 - **Performance**: Matches Claude Desktop performance (1-3 seconds per query)
 - **Reliability**: Production-tested Spring AI framework handles all protocol details
@@ -186,6 +250,11 @@ The Spring AI client now includes intelligent output formatting:
 ./gradlew build          # Build the server
 ./gradlew bootRun        # Run server locally
 ./gradlew test           # Run server tests
+
+# Native image
+sdk use java 25.0.2-graalce
+./gradlew nativeCompile --no-configuration-cache
+./build/native/nativeCompile/OsqueryMcpServer  # Run native binary
 
 # Client operations
 cd client-springai
@@ -207,8 +276,19 @@ The server integrates with Claude Desktop via configuration like:
 }
 ```
 
+Or with the native binary for instant startup:
+```json
+{
+  "mcpServers": {
+    "osquery": {
+      "command": "path/to/OsqueryMcpServer"
+    }
+  }
+}
+```
+
 ### Prerequisites
-- Java 21+
+- Java 25+ (GraalVM CE 25 recommended for native image support)
 - Osquery installed (`osqueryi` in PATH)
 - The service validates osquery availability at startup
 
@@ -219,6 +299,7 @@ The server integrates with Claude Desktop via configuration like:
 3. **Diagnostics-First**: Prioritize common troubleshooting scenarios
 4. **Schema Discovery**: Help AI understand available data structures
 5. **Example-Driven**: Provide query templates for common use cases
+6. **Instant Startup**: GraalVM native image for sub-200ms response times
 
 ## Avoid Over-Engineering
 
@@ -235,7 +316,7 @@ When committing changes:
 - Include the Claude Code footer:
   ```
   🤖 Generated with [Claude Code](https://claude.ai/code)
-  
+
   Co-Authored-By: Claude <noreply@anthropic.com>
   ```
 - Test thoroughly before committing

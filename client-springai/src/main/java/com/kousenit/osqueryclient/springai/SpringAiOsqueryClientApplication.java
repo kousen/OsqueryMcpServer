@@ -1,8 +1,8 @@
 package com.kousenit.osqueryclient.springai;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.boot.CommandLineRunner;
@@ -18,11 +18,11 @@ public class SpringAiOsqueryClientApplication {
 
     private final SyncMcpToolCallbackProvider toolCallbackProvider;
     private final ConfigurableApplicationContext context;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper jsonMapper = JsonMapper.builder().build();
     private boolean rawOutput = false;
     private final List<String> queryHistory = new ArrayList<>();
-    
-    public SpringAiOsqueryClientApplication(SyncMcpToolCallbackProvider toolCallbackProvider, 
+
+    public SpringAiOsqueryClientApplication(SyncMcpToolCallbackProvider toolCallbackProvider,
                                            ConfigurableApplicationContext context) {
         this.toolCallbackProvider = toolCallbackProvider;
         this.context = context;
@@ -37,19 +37,19 @@ public class SpringAiOsqueryClientApplication {
     public CommandLineRunner runner() {
         return args -> {
             System.out.println("Spring AI MCP Client for Osquery");
-            
+
             ToolCallback[] toolCallbacks = toolCallbackProvider.getToolCallbacks();
             if (toolCallbacks.length == 0) {
                 System.err.println("No MCP tools available. Make sure the server is configured properly.");
                 return;
             }
-            
+
             System.out.println("Found " + toolCallbacks.length + " MCP tools:");
             for (ToolCallback tool : toolCallbacks) {
-                System.out.println("  - " + tool.getToolDefinition().name() + 
+                System.out.println("  - " + tool.getToolDefinition().name() +
                                  ": " + tool.getToolDefinition().description());
             }
-            
+
             if (args.length > 0) {
                 String query = String.join(" ", args);
                 if ("--raw".equals(args[0])) {
@@ -68,7 +68,7 @@ public class SpringAiOsqueryClientApplication {
             } else {
                 runInteractiveMode(toolCallbacks);
             }
-            
+
             // Shut down the Spring Boot application after completion
             System.exit(SpringApplication.exit(context));
         };
@@ -81,24 +81,24 @@ public class SpringAiOsqueryClientApplication {
             if (queryHistory.size() > 20) {
                 queryHistory.remove(0);
             }
-            
+
             String toolName = mapQueryToTool(query);
-            
+
             ToolCallback tool = findTool(toolCallbacks, toolName);
             if (tool == null) {
                 System.err.println("Tool not found: " + toolName);
                 return;
             }
-            
+
             System.out.println("Executing: " + toolName);
-            
+
             String result;
             if (toolName.contains("executeOsquery")) {
                 result = tool.call("{\"sql\":\"" + query.replace("\"", "\\\"") + "\"}");
             } else {
                 result = tool.call("{}");
             }
-            
+
             formatAndPrintResult(result, toolName);
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
@@ -108,36 +108,36 @@ public class SpringAiOsqueryClientApplication {
     private void runInteractiveMode(ToolCallback[] toolCallbacks) {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Interactive Mode - Type 'help' for commands, 'exit' to quit");
-        
+
         while (true) {
             System.out.print("osquery> ");
             String input = scanner.nextLine().trim();
-            
+
             if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("quit")) {
                 break;
             }
-            
+
             if (input.equalsIgnoreCase("help")) {
                 printHelp();
                 continue;
             }
-            
+
             if (input.equalsIgnoreCase("tools")) {
                 listTools(toolCallbacks);
                 continue;
             }
-            
+
             if (input.equalsIgnoreCase("raw")) {
                 rawOutput = !rawOutput;
                 System.out.println("Output mode: " + (rawOutput ? "raw" : "formatted"));
                 continue;
             }
-            
+
             if (input.equalsIgnoreCase("history")) {
                 showHistory();
                 continue;
             }
-            
+
             // Check for history recall (e.g., "!3" to recall 3rd from last query)
             if (input.startsWith("!")) {
                 String recalled = recallFromHistory(input);
@@ -149,17 +149,17 @@ public class SpringAiOsqueryClientApplication {
                 }
                 continue;
             }
-            
+
             processQuery(toolCallbacks, input);
         }
-        
+
         System.out.println("Goodbye!");
     }
 
     private void listTools(ToolCallback[] toolCallbacks) {
         System.out.println("\nAvailable tools:");
         for (ToolCallback tool : toolCallbacks) {
-            System.out.println("  - " + tool.getToolDefinition().name() + 
+            System.out.println("  - " + tool.getToolDefinition().name() +
                              ": " + tool.getToolDefinition().description());
         }
         System.out.println();
@@ -176,20 +176,21 @@ public class SpringAiOsqueryClientApplication {
 
     private static String mapQueryToTool(String query) {
         String lowerQuery = query.toLowerCase().trim();
-        
+
         String prefix = "osquery_cli_osquery_server_";
-        
+
         // Check for SQL queries first (highest priority)
         if (lowerQuery.startsWith("select ") || lowerQuery.contains(" from ")) {
             return prefix + "executeOsquery";
         }
-        
+
         // Check for specific tool queries (order matters - security first)
         if (lowerQuery.contains("suspicious") || lowerQuery.contains("security") || lowerQuery.contains("compromised") ||
             lowerQuery.contains("malware") || lowerQuery.contains("unusual")) {
             return prefix + "getSuspiciousProcesses";
-        } else if (lowerQuery.contains("disk") && (lowerQuery.contains("activity") || lowerQuery.contains("io") || 
-                   lowerQuery.contains("busy") || lowerQuery.contains("slowdown") || lowerQuery.contains("usage"))) {
+        } else if (lowerQuery.contains("disk") && (lowerQuery.contains("activity") || lowerQuery.contains("io") ||
+                   lowerQuery.contains("busy") || lowerQuery.contains("slowdown") || lowerQuery.contains("usage") ||
+                   lowerQuery.contains("writing") || lowerQuery.contains("reading"))) {
             return prefix + "getHighDiskIOProcesses";
         } else if (lowerQuery.contains("cpu")) {
             return prefix + "getHighCpuProcesses";
@@ -207,13 +208,13 @@ public class SpringAiOsqueryClientApplication {
             return prefix + "getSystemHealthSummary";
         }
     }
-    
+
     private void showHistory() {
         if (queryHistory.isEmpty()) {
             System.out.println("No query history available.");
             return;
         }
-        
+
         System.out.println("\\nQuery History (most recent first):");
         for (int i = queryHistory.size() - 1; i >= 0; i--) {
             int historyIndex = queryHistory.size() - i;
@@ -221,7 +222,7 @@ public class SpringAiOsqueryClientApplication {
         }
         System.out.println("\\nUse !<number> to recall a query (e.g., !1 for most recent)");
     }
-    
+
     private String recallFromHistory(String input) {
         try {
             String numberStr = input.substring(1).trim();
@@ -229,12 +230,12 @@ public class SpringAiOsqueryClientApplication {
                 // Just "!" means most recent
                 return queryHistory.isEmpty() ? null : queryHistory.get(queryHistory.size() - 1);
             }
-            
+
             int index = Integer.parseInt(numberStr);
             if (index <= 0 || index > queryHistory.size()) {
                 return null;
             }
-            
+
             // Convert to 0-based index (1 = most recent = last item)
             return queryHistory.get(queryHistory.size() - index);
         } catch (NumberFormatException e) {
@@ -264,23 +265,23 @@ public class SpringAiOsqueryClientApplication {
         System.out.println("  exit    - Exit the program");
         System.out.println();
     }
-    
+
     private void formatAndPrintResult(String result, String toolName) {
         if (rawOutput) {
             System.out.println(result);
             return;
         }
-        
+
         try {
             // Parse the result as JSON array
-            JsonNode rootNode = objectMapper.readTree(result);
-            
+            JsonNode rootNode = jsonMapper.readTree(result);
+
             // Extract the text content from the first element
             if (rootNode.isArray() && !rootNode.isEmpty()) {
                 JsonNode firstElement = rootNode.get(0);
                 if (firstElement.has("text")) {
                     String textContent = firstElement.get("text").asText();
-                    
+
                     // The text content is a JSON string that needs to be unescaped
                     // It starts and ends with quotes that need to be removed
                     if (textContent.startsWith("\"") && textContent.endsWith("\"")) {
@@ -292,16 +293,16 @@ public class SpringAiOsqueryClientApplication {
                         textContent = textContent.replace("\\t", "\t");
                         textContent = textContent.replace("\\r", "\r");
                     }
-                    
+
                     // Special handling for system health summary or temperature info
                     if (toolName.contains("getSystemHealthSummary") || toolName.contains("getTemperatureInfo")) {
                         printSystemHealthSummary(textContent);
                         return;
                     }
-                    
+
                     // Try to parse the text content as JSON
                     try {
-                        JsonNode dataNode = objectMapper.readTree(textContent);
+                        JsonNode dataNode = jsonMapper.readTree(textContent);
                         if (dataNode.isArray() && !dataNode.isEmpty()) {
                             printAsTable(dataNode);
                         } else if (dataNode.isObject()) {
@@ -309,38 +310,37 @@ public class SpringAiOsqueryClientApplication {
                         } else {
                             System.out.println(textContent);
                         }
-                    } catch (JsonProcessingException e) {
+                    } catch (JacksonException e) {
                         // If it's not JSON, just print the text
                         System.out.println(textContent);
                     }
                     return;
                 }
             }
-            
+
             // If we couldn't extract text, print the raw result
             System.out.println(result);
-            
-        } catch (JsonProcessingException e) {
+
+        } catch (JacksonException e) {
             // If parsing fails, just print the raw result
             System.out.println(result);
         }
     }
-    
-    
+
+
     private void printAsTable(JsonNode arrayNode) {
         if (arrayNode.isEmpty()) {
             System.out.println("No results found.");
             return;
         }
-        
+
         // Get column names from the first object
         JsonNode firstObject = arrayNode.get(0);
         List<String> columns = new ArrayList<>();
-        Iterator<String> fieldNames = firstObject.fieldNames();
-        while (fieldNames.hasNext()) {
-            columns.add(fieldNames.next());
+        for (String name : firstObject.propertyNames()) {
+            columns.add(name);
         }
-        
+
         // Calculate column widths
         Map<String, Integer> columnWidths = new HashMap<>();
         for (String column : columns) {
@@ -354,7 +354,7 @@ public class SpringAiOsqueryClientApplication {
             }
             columnWidths.put(column, Math.min(maxWidth + 2, 50)); // Cap at 50 chars
         }
-        
+
         // Print header
         printTableSeparator(columns, columnWidths);
         System.out.print("|");
@@ -363,7 +363,7 @@ public class SpringAiOsqueryClientApplication {
         }
         System.out.println();
         printTableSeparator(columns, columnWidths);
-        
+
         // Print rows
         for (JsonNode row : arrayNode) {
             System.out.print("|");
@@ -378,10 +378,10 @@ public class SpringAiOsqueryClientApplication {
             System.out.println();
         }
         printTableSeparator(columns, columnWidths);
-        
+
         System.out.println("\nTotal: " + arrayNode.size() + " rows");
     }
-    
+
     private void printTableSeparator(List<String> columns, Map<String, Integer> columnWidths) {
         System.out.print("+");
         for (String column : columns) {
@@ -390,26 +390,26 @@ public class SpringAiOsqueryClientApplication {
         }
         System.out.println();
     }
-    
+
     private void printAsKeyValue(JsonNode objectNode) {
         Iterator<Map.Entry<String, JsonNode>> fields = objectNode.properties().iterator();
         int maxKeyLength = 0;
-        
+
         // Find max key length for alignment
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
             maxKeyLength = Math.max(maxKeyLength, field.getKey().length());
         }
-        
+
         // Print key-value pairs
         fields = objectNode.properties().iterator();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
-            System.out.printf("%-" + (maxKeyLength + 2) + "s: %s\n", 
+            System.out.printf("%-" + (maxKeyLength + 2) + "s: %s\n",
                 field.getKey(), field.getValue().asText());
         }
     }
-    
+
     private void printSystemHealthSummary(String summaryText) {
         // The system health summary contains multiple sections with JSON arrays
         // Parse and format each section separately
@@ -424,7 +424,7 @@ public class SpringAiOsqueryClientApplication {
             } else if (line.startsWith("[")) {
                 // This is JSON data - parse and format it
                 try {
-                    JsonNode sectionData = objectMapper.readTree(line);
+                    JsonNode sectionData = jsonMapper.readTree(line);
                     if (sectionData.isArray() && !sectionData.isEmpty()) {
                         printAsTable(sectionData);
                     }

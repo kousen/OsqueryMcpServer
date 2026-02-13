@@ -14,30 +14,57 @@ This project enables AI assistants to answer system diagnostic questions like "W
 | **Spring AI Client** | Programmatic access | CLI client using Spring AI's MCP auto-configuration |
 | **Claude Code Skill** | Claude Code CLI | Direct `osqueryi` execution via Bash, no server needed |
 
+## What's New (upgrade/spring-ai-2.0 branch)
+
+This branch upgrades the entire stack to the latest Spring ecosystem and adds GraalVM native image support:
+
+| Component | Before (main) | After (this branch) |
+|-----------|---------------|---------------------|
+| Spring Boot | 3.5.0 | **4.0.1** |
+| Spring AI | 1.0.0 | **2.0.0-M2** |
+| Java | 21 | **25** (GraalVM CE) |
+| Jackson | 2.x (`com.fasterxml`) | **3.x** (`tools.jackson`) |
+| Dependency mgmt | `io.spring.dependency-management` plugin | Gradle `platform()` BOMs |
+| Native image | Not supported | **GraalVM native binary (~36ms startup)** |
+| System health | Sequential (5 queries) | **Parallel via virtual threads** |
+
+### Key Upgrade Details
+
+**GraalVM Native Image**: The MCP server compiles to a ~62MB native binary that starts and responds to MCP requests in ~36ms. This is critical for the voice interface use case — when a JavaFX voice client launches the server, it needs to respond instantly.
+
+**Virtual Threads**: `getSystemHealthSummary()` now runs all 5 diagnostic queries (CPU, memory, disk, network, temperature) in parallel using `Executors.newVirtualThreadPerTaskExecutor()` with `CompletableFuture.supplyAsync()`. This reduces response time from the sum of all queries to the duration of the slowest single query.
+
+**Jackson 3 Migration** (client only): Spring Boot 4 ships Jackson 3 with new Maven coordinates (`tools.jackson.core` instead of `com.fasterxml.jackson.core`), immutable builders (`JsonMapper.builder().build()` instead of `new ObjectMapper()`), and unchecked exceptions (`JacksonException` instead of `JsonProcessingException`).
+
+**Gradle Build Changes**: Spring Boot 4 drops the `io.spring.dependency-management` plugin. Dependencies are now managed with Gradle-native `platform()` BOMs and the Spring Milestones repository (`https://repo.spring.io/milestone`).
+
 ## Features
 
 ### MCP Server
 - **Natural Language System Diagnostics**: Ask questions like "What's using my CPU?" and get intelligent answers
-- **9 Specialized Tools** for common diagnostic scenarios:
+- **11 Specialized Tools** for common diagnostic scenarios:
   - Execute custom Osquery SQL queries
   - Get table schemas and available columns
-  - Find high CPU/memory usage processes
+  - Find high CPU/memory/disk I/O usage processes
   - Analyze network connections
   - Check system temperature and fan speeds (macOS)
-  - Get comprehensive system health summary
+  - Identify suspicious processes
+  - Get comprehensive system health summary (parallel execution)
   - Access example queries for common problems
 - **Smart Query Assistance**: Built-in examples and schema discovery help the AI construct better queries
 - **STDIO-based MCP Integration**: Works seamlessly with Claude Desktop and other MCP-compatible AI tools
-- **Spring Boot 3.5 with Java 21**: Modern, efficient, and maintainable codebase using Java 17+ features
+- **Spring Boot 4.0.1 with Java 25**: Latest Spring ecosystem with GraalVM native image support
+- **GraalVM Native Image**: Sub-200ms startup for instant MCP responses (~36ms measured)
 
 ### Spring AI MCP Client
-- **Spring AI Auto-Configuration**: Leverages Spring AI's MCP client starter for zero-configuration setup
+- **Spring AI Auto-Configuration**: Leverages Spring AI 2.0's MCP client starter for zero-configuration setup
 - **Interactive CLI**: REPL interface for exploratory system diagnostics
 - **Natural Language Processing**: Maps human questions to appropriate server tools
 - **Custom SQL Support**: Execute direct osquery commands through the MCP server
 - **Automatic Tool Discovery**: Tools discovered via `SyncMcpToolCallbackProvider` injection
 - **Built-in Error Handling**: Framework-managed timeouts and process management
 - **Declarative Configuration**: YAML-based setup for easy maintenance
+- **Jackson 3**: Uses immutable `JsonMapper` builder pattern and modern APIs
 - **Comprehensive Testing**: Includes automated unit tests for query mapping logic
 
 ### Claude Code Skill
@@ -51,6 +78,8 @@ This project enables AI assistants to answer system diagnostic questions like "W
 
 ## Performance & Reliability
 
+- **Native Image Startup**: ~36ms to first MCP response (vs several seconds for JVM startup)
+- **Parallel Queries**: System health summary runs 5 queries concurrently via virtual threads
 - **Query Timeouts**: Prevents hanging with 30-second timeout for queries, 5-second for version checks
 - **Process Management**: Uses ProcessBuilder for robust resource handling and proper cleanup
 - **Execution Time Logging**: Tracks query performance for monitoring and debugging
@@ -59,7 +88,8 @@ This project enables AI assistants to answer system diagnostic questions like "W
 
 ## Prerequisites
 
-- Java 21 or higher
+- **Java 25+** (GraalVM CE 25 recommended for native image support)
+  - Install via SDKMAN: `sdk install java 25.0.2-graalce`
 - [Osquery](https://osquery.io/downloads/official) installed and `osqueryi` available in your PATH
 - Gradle (or use the included Gradle wrapper)
 
@@ -69,21 +99,33 @@ This project enables AI assistants to answer system diagnostic questions like "W
 ```bash
 git clone https://github.com/yourusername/OsqueryMcpServer.git
 cd OsqueryMcpServer
+git checkout upgrade/spring-ai-2.0   # For the latest version
 ```
 
 2. Build the project:
 ```bash
-./gradlew build        # Build server
+./gradlew build        # Build server + client, run all tests
 ./gradlew bootJar      # Create executable JAR
 cd client-springai && ../gradlew build  # Build Spring AI client
 ```
 
-3. Run the server:
+3. Build the native image (optional, recommended):
 ```bash
-./gradlew bootRun
+sdk use java 25.0.2-graalce
+./gradlew nativeCompile --no-configuration-cache
+# Binary at: build/native/nativeCompile/OsqueryMcpServer
 ```
 
-4. Test the Spring AI MCP client:
+4. Run the server:
+```bash
+# JVM mode
+./gradlew bootRun
+
+# Native mode (instant startup)
+./build/native/nativeCompile/OsqueryMcpServer
+```
+
+5. Test the Spring AI MCP client:
 ```bash
 # Natural language queries
 cd client-springai && ../gradlew run --args="\"What's using my CPU?\""
@@ -98,16 +140,17 @@ cd client-springai && ../gradlew run --args="\"What's using my CPU?\""
 ./test-client-springai.sh
 ```
 
-5. Run tests:
+6. Run tests:
 ```bash
-./gradlew test --tests OsqueryServiceTest    # Server tests
-cd client-springai && ../gradlew test       # Spring AI client tests
+./gradlew :test                              # Server tests
+./gradlew :client-springai:test              # Spring AI client tests
+./gradlew build                              # All tests
 ```
 
 ## Usage
 
 ### MCP Server
-The server operates in STDIO mode and provides nine specialized tools for system diagnostics:
+The server operates in STDIO mode and provides eleven specialized tools for system diagnostics:
 
 ### Spring AI MCP Client
 The client provides multiple ways to interact with the server:
@@ -116,9 +159,11 @@ The client provides multiple ways to interact with the server:
 ```bash
 cd client-springai
 ../gradlew run --args="\"What's using my CPU?\""
-../gradlew run --args="\"Show network connections\""  
+../gradlew run --args="\"Show network connections\""
 ../gradlew run --args="\"Why is my fan running?\""
 ../gradlew run --args="\"Show system health\""
+../gradlew run --args="\"Check for suspicious processes\""
+../gradlew run --args="\"Show high disk I/O processes\""
 ```
 
 #### Custom SQL Queries
@@ -177,26 +222,30 @@ No server required - Claude executes queries via Bash and interprets the JSON re
 ### Diagnostic Tools
 - **`getHighCpuProcesses()`**: Find processes consuming the most CPU
 - **`getHighMemoryProcesses()`**: Find processes using the most memory
+- **`getHighDiskIOProcesses()`**: Find processes with high disk read/write activity
 - **`getNetworkConnections()`**: Show active network connections with process info
 - **`getTemperatureInfo()`**: Get system temperature and fan speeds (macOS)
+- **`getSuspiciousProcesses()`**: Identify processes with unusual characteristics
 
 ### Helper Tools
 - **`getCommonQueries()`**: Get example queries for common diagnostic scenarios
-- **`getSystemHealthSummary()`**: Get comprehensive overview of CPU, memory, disk, network, and temperature
+- **`getSystemHealthSummary()`**: Get comprehensive overview of CPU, memory, disk, network, and temperature (runs all queries in parallel via virtual threads)
 
 ## Example AI Interactions
 
 Instead of writing complex SQL, you can now ask natural language questions:
 
-**"Why is my computer running slowly?"** → AI uses `getHighCpuProcesses()` and `getHighMemoryProcesses()`
+**"Why is my computer running slowly?"** -> AI uses `getHighCpuProcesses()` and `getHighMemoryProcesses()`
 
-**"What's connecting to the internet?"** → AI uses `getNetworkConnections()`
+**"What's connecting to the internet?"** -> AI uses `getNetworkConnections()`
 
-**"Why is my fan so loud?"** → AI uses `getTemperatureInfo()` to check system temps
+**"Why is my fan so loud?"** -> AI uses `getTemperatureInfo()` to check system temps
 
-**"Show me all Chrome processes"** → AI uses `executeOsquery()` with schema discovery
+**"Show me all Chrome processes"** -> AI uses `executeOsquery()` with schema discovery
 
-**"Give me an overall system health check"** → AI uses `getSystemHealthSummary()` for comprehensive diagnostics
+**"Give me an overall system health check"** -> AI uses `getSystemHealthSummary()` for comprehensive diagnostics (5 queries run in parallel)
+
+**"Is my system compromised?"** -> AI uses `getSuspiciousProcesses()` to check for anomalies
 
 ## Configuration
 
@@ -229,9 +278,21 @@ For Claude Desktop, add to your configuration:
 }
 ```
 
+Or with the native binary for instant startup (~36ms):
+
+```json
+{
+  "mcpServers": {
+    "osquery": {
+      "command": "path/to/OsqueryMcpServer"
+    }
+  }
+}
+```
+
 ## Security Considerations
 
-⚠️ **Warning**: This server executes system commands with the privileges of the running user. Consider the following security measures:
+> **Warning**: This server executes system commands with the privileges of the running user. Consider the following security measures:
 
 - Run with minimal required privileges
 - Implement query filtering or whitelisting in production
@@ -240,52 +301,73 @@ For Claude Desktop, add to your configuration:
 
 ## Development
 
-### Project Structure
-
-```
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/kousenit/osquerymcpserver/
-│   │   │       ├── OsqueryMcpServerApplication.java
-│   │   │       └── OsqueryService.java
-│   │   └── resources/
-│   │       └── application.properties
-│   └── test/
-│       └── java/
-└── build.gradle.kts
-```
-
 ### Project Architecture
 
 ```
-├── src/                                    # MCP Server (Spring Boot)
-│   ├── main/java/com/kousenit/osquerymcpserver/
-│   │   ├── OsqueryMcpServerApplication.java      # Main application
-│   │   └── OsqueryService.java                   # MCP tools
-│   └── test/java/com/kousenit/osquerymcpserver/
-│       └── OsqueryServiceTest.java               # Server tests
-├── client-springai/                        # Spring AI MCP Client
-│   ├── src/main/java/com/kousenit/osqueryclient/springai/
-│   │   └── SpringAiOsqueryClientApplication.java # CLI application
-│   ├── src/test/java/com/kousenit/osqueryclient/springai/
-│   │   └── QueryMappingTest.java                 # Unit tests
-│   ├── application.yml                          # Spring AI configuration
-│   └── test-client-springai.sh                  # Test runner
-├── .claude/skills/osquery/                 # Claude Code Skill
-│   ├── SKILL.md                                 # Skill definition & triggers
-│   └── queries.md                               # Query templates & baselines
-└── build.gradle.kts                            # Server build config
+src/                                    # MCP Server (Spring Boot 4)
+├── main/java/com/kousenit/osquerymcpserver/
+│   ├── OsqueryMcpServerApplication.java      # Main application
+│   └── OsqueryService.java                   # MCP tools (virtual threads)
+└── test/java/com/kousenit/osquerymcpserver/
+    └── OsqueryServiceTest.java               # Server tests
+
+client-springai/                        # Spring AI 2.0 MCP Client
+├── src/main/java/com/kousenit/osqueryclient/springai/
+│   └── SpringAiOsqueryClientApplication.java # CLI application (Jackson 3)
+├── src/test/java/com/kousenit/osqueryclient/springai/
+│   └── QueryMappingTest.java                 # Unit tests
+├── application.yml                          # Spring AI configuration
+└── test-client-springai.sh                  # Test runner
+
+.claude/skills/osquery/                 # Claude Code Skill
+├── SKILL.md                                 # Skill definition & triggers
+└── queries.md                               # Query templates & baselines
+
+build.gradle.kts                            # Server build (GraalVM native)
+```
+
+### Build Configuration
+
+The project uses Gradle with `platform()` BOMs for dependency management (Spring Boot 4 drops the `io.spring.dependency-management` plugin):
+
+```kotlin
+plugins {
+    java
+    id("org.springframework.boot") version "4.0.1"
+    id("org.graalvm.buildtools.native") version "0.10.6"  // Server only
+}
+
+dependencies {
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.1"))
+    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0-M2"))
+    // ...
+}
 ```
 
 ### Running Tests
 
 ```bash
-./gradlew test                           # Server tests
-cd client-springai && ../gradlew test    # Spring AI client tests
+./gradlew :test                          # Server tests
+./gradlew :client-springai:test          # Spring AI client tests
+./gradlew build                          # All tests
 ./test-client-springai.sh                # Full client test suite
 ```
 
+### Building the Native Image
+
+```bash
+# Requires GraalVM CE 25
+sdk install java 25.0.2-graalce
+sdk use java 25.0.2-graalce
+
+# Build (takes ~25 seconds)
+./gradlew nativeCompile --no-configuration-cache
+
+# Test
+./build/native/nativeCompile/OsqueryMcpServer
+```
+
+**Note**: The `--no-configuration-cache` flag is required due to a known incompatibility between the GraalVM buildtools plugin 0.10.6 and Gradle 9's configuration cache serialization.
 
 ## Built-in Diagnostic Queries
 
@@ -296,14 +378,14 @@ The server includes pre-built queries for common diagnostic scenarios. Use `getC
 -- Top CPU consuming processes
 SELECT name, pid, uid, (user_time + system_time) AS cpu_time FROM processes ORDER BY cpu_time DESC LIMIT 10;
 
--- Memory usage by process  
+-- Memory usage by process
 SELECT name, pid, resident_size, total_size FROM processes ORDER BY resident_size DESC LIMIT 10;
 ```
 
 ### Network Analysis
 ```sql
 -- Active network connections
-SELECT pid, local_address, local_port, remote_address, remote_port, state 
+SELECT pid, local_address, local_port, remote_address, remote_port, state
 FROM process_open_sockets WHERE state = 'ESTABLISHED'
 ```
 
@@ -313,7 +395,7 @@ FROM process_open_sockets WHERE state = 'ESTABLISHED'
 SELECT hostname, cpu_brand, physical_memory, hardware_vendor, hardware_model FROM system_info;
 
 -- Recent file changes
-SELECT path, mtime, size FROM file WHERE path LIKE '/Users/%' 
+SELECT path, mtime, size FROM file WHERE path LIKE '/Users/%'
 AND mtime > (strftime('%s', 'now') - 3600)
 ```
 
@@ -332,3 +414,4 @@ MIT License. See [License](LICENSE) for details.
 - [Osquery](https://osquery.io/) by Facebook
 - [Spring AI MCP](https://spring.io/projects/spring-ai) for MCP protocol implementation
 - Spring Boot framework
+- GraalVM for native image compilation
