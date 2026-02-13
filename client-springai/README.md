@@ -183,7 +183,7 @@ For quick verification that the MCP integration is working:
 ```
 
 **Expected Output**:
-- ✅ Found 9 tools with `osquery_cli_osquery_server_` prefix
+- ✅ Found 11 tools with `osquery_cli_osquery_server_` prefix
 - ✅ Successful tool execution with real system data
 - ✅ Network connections, temperature, and system info displayed
 
@@ -212,18 +212,18 @@ The test suite includes:
 
 ## Dependencies
 
-- **Spring Boot 3.5.0**—Application framework
-- **Spring AI 1.0.0**—MCP client starter with autoconfiguration
+- **Spring Boot 4.0.1** — Application framework
+- **Spring AI 2.0.0-M2** — MCP client starter with autoconfiguration
 - **PicoCLI 4.7.5** - Command-line interface framework
-- **Jackson**—JSON parsing for output formatting
-- **JUnit 5 and AssertJ**—Testing framework
+- **Jackson 3** (`tools.jackson`) — JSON parsing for output formatting
+- **JUnit 5 and AssertJ** — Testing framework
 
 ### Critical Dependency Notes
 
-- **Spring AI BOM 1.0.0** - Ensures compatible versions of all Spring AI components
+- **Spring AI BOM 2.0.0-M2** - Ensures compatible versions of all Spring AI components (requires Spring Milestones repo)
 - **MCP Client Starter** - Provides `SyncMcpToolCallbackProvider` and auto-configuration
-- **Java 21** - Required for Spring Boot 3.5.0 and modern Java features
-- **Jackson ObjectMapper**—Used for JSON parsing and formatting output
+- **Java 25** - Required for Spring Boot 4.0.1
+- **Jackson 3 JsonMapper** — Immutable builder pattern (`JsonMapper.builder().build()`), unchecked exceptions
 
 ## Comparison with Manual Implementation
 
