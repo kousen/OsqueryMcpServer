@@ -39,4 +39,4 @@ out/
 ### Claude Code ###
 /.claude/*
 !/.claude/skills/
-test-osquery-mcp.log
+test-osquery-mcp.log*
