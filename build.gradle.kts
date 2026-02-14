@@ -24,6 +24,11 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-starter-mcp-server")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // Make transitive vulnerabilities go away
+    implementation("ch.qos.logback:logback-core:1.5.29")
+    implementation("ch.qos.logback:logback-classic:1.5.29")
+    testImplementation("org.assertj:assertj-core:4.0.0-M1")
 }
 
 tasks.withType<Test> {

@@ -28,7 +28,7 @@ public class SpringAiOsqueryClientApplication {
         this.context = context;
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         System.setProperty("spring.shell.interactive.enabled", "false");
         SpringApplication.run(SpringAiOsqueryClientApplication.class, args);
     }
@@ -79,7 +79,7 @@ public class SpringAiOsqueryClientApplication {
             // Add to history (limit to last 20 queries)
             queryHistory.add(query);
             if (queryHistory.size() > 20) {
-                queryHistory.remove(0);
+                queryHistory.removeFirst();
             }
 
             String toolName = mapQueryToTool(query);
@@ -228,7 +228,7 @@ public class SpringAiOsqueryClientApplication {
             String numberStr = input.substring(1).trim();
             if (numberStr.isEmpty()) {
                 // Just "!" means most recent
-                return queryHistory.isEmpty() ? null : queryHistory.get(queryHistory.size() - 1);
+                return queryHistory.isEmpty() ? null : queryHistory.getLast();
             }
 
             int index = Integer.parseInt(numberStr);
@@ -280,7 +280,7 @@ public class SpringAiOsqueryClientApplication {
             if (rootNode.isArray() && !rootNode.isEmpty()) {
                 JsonNode firstElement = rootNode.get(0);
                 if (firstElement.has("text")) {
-                    String textContent = firstElement.get("text").asText();
+                    String textContent = firstElement.get("text").asString();
 
                     // The text content is a JSON string that needs to be unescaped
                     // It starts and ends with quotes that need to be removed
@@ -336,10 +336,7 @@ public class SpringAiOsqueryClientApplication {
 
         // Get column names from the first object
         JsonNode firstObject = arrayNode.get(0);
-        List<String> columns = new ArrayList<>();
-        for (String name : firstObject.propertyNames()) {
-            columns.add(name);
-        }
+        List<String> columns = new ArrayList<>(firstObject.propertyNames());
 
         // Calculate column widths
         Map<String, Integer> columnWidths = new HashMap<>();
@@ -348,7 +345,7 @@ public class SpringAiOsqueryClientApplication {
             for (JsonNode row : arrayNode) {
                 JsonNode value = row.get(column);
                 if (value != null) {
-                    int width = value.asText().length();
+                    int width = value.asString().length();
                     maxWidth = Math.max(maxWidth, width);
                 }
             }
@@ -369,7 +366,7 @@ public class SpringAiOsqueryClientApplication {
             System.out.print("|");
             for (String column : columns) {
                 JsonNode value = row.get(column);
-                String text = value != null ? value.asText() : "";
+                String text = value != null ? value.asString() : "";
                 if (text.length() > columnWidths.get(column) - 2) {
                     text = text.substring(0, columnWidths.get(column) - 5) + "...";
                 }
@@ -406,7 +403,7 @@ public class SpringAiOsqueryClientApplication {
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
             System.out.printf("%-" + (maxKeyLength + 2) + "s: %s\n",
-                field.getKey(), field.getValue().asText());
+                field.getKey(), field.getValue().asString());
         }
     }
 

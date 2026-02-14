@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class OsqueryMcpServerApplication {
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         SpringApplication.run(OsqueryMcpServerApplication.class, args);
     }
 

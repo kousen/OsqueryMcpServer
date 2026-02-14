@@ -6,7 +6,7 @@ echo "========================================="
 echo ""
 
 # Navigate to client directory
-cd client-springai
+cd client-springai || exit
 
 echo "1. Testing formatted output (default):"
 echo "--------------------------------------"
