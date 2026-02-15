@@ -40,3 +40,6 @@ out/
 /.claude/*
 !/.claude/skills/
 test-osquery-mcp.log*
+
+### YouTube ###
+youtube/

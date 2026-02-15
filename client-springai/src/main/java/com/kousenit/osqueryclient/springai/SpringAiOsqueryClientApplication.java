@@ -106,54 +106,55 @@ public class SpringAiOsqueryClientApplication {
     }
 
     private void runInteractiveMode(ToolCallback[] toolCallbacks) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Interactive Mode - Type 'help' for commands, 'exit' to quit");
+        try (var scanner = new Scanner(System.in)) {
+            System.out.println("Interactive Mode - Type 'help' for commands, 'exit' to quit");
 
-        while (true) {
-            System.out.print("osquery> ");
-            String input = scanner.nextLine().trim();
+            while (true) {
+                System.out.print("osquery> ");
+                String input = scanner.nextLine().trim();
 
-            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("quit")) {
-                break;
-            }
-
-            if (input.equalsIgnoreCase("help")) {
-                printHelp();
-                continue;
-            }
-
-            if (input.equalsIgnoreCase("tools")) {
-                listTools(toolCallbacks);
-                continue;
-            }
-
-            if (input.equalsIgnoreCase("raw")) {
-                rawOutput = !rawOutput;
-                System.out.println("Output mode: " + (rawOutput ? "raw" : "formatted"));
-                continue;
-            }
-
-            if (input.equalsIgnoreCase("history")) {
-                showHistory();
-                continue;
-            }
-
-            // Check for history recall (e.g., "!3" to recall 3rd from last query)
-            if (input.startsWith("!")) {
-                String recalled = recallFromHistory(input);
-                if (recalled != null) {
-                    System.out.println("Recalled: " + recalled);
-                    processQuery(toolCallbacks, recalled);
-                } else {
-                    System.out.println("History item not found. Use 'history' to see available queries.");
+                if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("quit")) {
+                    break;
                 }
-                continue;
+
+                if (input.equalsIgnoreCase("help")) {
+                    printHelp();
+                    continue;
+                }
+
+                if (input.equalsIgnoreCase("tools")) {
+                    listTools(toolCallbacks);
+                    continue;
+                }
+
+                if (input.equalsIgnoreCase("raw")) {
+                    rawOutput = !rawOutput;
+                    System.out.println("Output mode: " + (rawOutput ? "raw" : "formatted"));
+                    continue;
+                }
+
+                if (input.equalsIgnoreCase("history")) {
+                    showHistory();
+                    continue;
+                }
+
+                // Check for history recall (e.g., "!3" to recall 3rd from last query)
+                if (input.startsWith("!")) {
+                    String recalled = recallFromHistory(input);
+                    if (recalled != null) {
+                        System.out.println("Recalled: " + recalled);
+                        processQuery(toolCallbacks, recalled);
+                    } else {
+                        System.out.println("History item not found. Use 'history' to see available queries.");
+                    }
+                    continue;
+                }
+
+                processQuery(toolCallbacks, input);
             }
 
-            processQuery(toolCallbacks, input);
+            System.out.println("Goodbye!");
         }
-
-        System.out.println("Goodbye!");
     }
 
     private void listTools(ToolCallback[] toolCallbacks) {
