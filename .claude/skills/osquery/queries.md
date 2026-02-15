@@ -251,14 +251,14 @@ Example output shows column names and types available.
 
 ## Example Queries for Common Scenarios
 
-| Scenario | Query |
-|----------|-------|
-| "What Chrome tabs are using memory?" | `SELECT name, pid, resident_size FROM processes WHERE name LIKE '%Chrome%' ORDER BY resident_size DESC` |
-| "Is Docker running?" | `SELECT name, pid, state FROM processes WHERE name LIKE '%docker%'` |
-| "What's listening on port 8080?" | `SELECT p.name, pos.* FROM process_open_sockets pos JOIN processes p ON pos.pid = p.pid WHERE pos.local_port = 8080` |
-| "Show me Java processes" | `SELECT name, pid, path, cmdline FROM processes WHERE name LIKE '%java%'` |
+| Scenario                               | Query                                                                                                                   |
+|----------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| "What Chrome tabs are using memory?"   | `SELECT name, pid, resident_size FROM processes WHERE name LIKE '%Chrome%' ORDER BY resident_size DESC`                 |
+| "Is Docker running?"                   | `SELECT name, pid, state FROM processes WHERE name LIKE '%docker%'`                                                     |
+| "What's listening on port 8080?"       | `SELECT p.name, pos.* FROM process_open_sockets pos JOIN processes p ON pos.pid = p.pid WHERE pos.local_port = 8080`    |
+| "Show me Java processes"               | `SELECT name, pid, path, cmdline FROM processes WHERE name LIKE '%java%'`                                               |
 | "What started in the last 10 minutes?" | `SELECT name, pid, start_time FROM processes WHERE start_time > (strftime('%s', 'now') - 600) ORDER BY start_time DESC` |
-| "Find Claude sessions" | `SELECT name, pid, cmdline FROM processes WHERE cmdline LIKE '%claude%'` |
+| "Find Claude sessions"                 | `SELECT name, pid, cmdline FROM processes WHERE cmdline LIKE '%claude%'`                                                |
 
 ---
 
@@ -526,10 +526,10 @@ ORDER BY pos.local_port
 
 ## Documentation References
 
-| Topic | URL |
-|-------|-----|
-| Complete schema reference | https://osquery.io/schema/ |
-| SQL functions | https://osquery.readthedocs.io/en/stable/introduction/sql/ |
+| Topic                     | URL                                                                            |
+|---------------------------|--------------------------------------------------------------------------------|
+| Complete schema reference | https://osquery.io/schema/                                                     |
+| SQL functions             | https://osquery.readthedocs.io/en/stable/introduction/sql/                     |
 | File Integrity Monitoring | https://osquery.readthedocs.io/en/stable/deployment/file-integrity-monitoring/ |
-| Performance tuning | https://osquery.readthedocs.io/en/stable/deployment/performance-safety/ |
-| Process auditing | https://osquery.readthedocs.io/en/stable/deployment/process-auditing/ |
+| Performance tuning        | https://osquery.readthedocs.io/en/stable/deployment/performance-safety/        |
+| Process auditing          | https://osquery.readthedocs.io/en/stable/deployment/process-auditing/          |

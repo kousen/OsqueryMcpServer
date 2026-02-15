@@ -28,26 +28,26 @@ osqueryi --json "YOUR SQL QUERY HERE"
 
 ## Quick Reference: Common Diagnostics
 
-| User Question | Use This Query |
-|---------------|----------------|
-| "Why is my computer slow?" | High CPU or High Memory query |
-| "What's using all my RAM?" | High Memory query |
-| "What's using my network?" | Network Connections query |
-| "Is my fan running hot?" | Temperature Info query |
-| "Is my system compromised?" | Suspicious Processes query |
-| "What's causing disk slowdown?" | High Disk I/O query |
-| "Give me a system overview" | System Health Summary |
+| User Question                   | Use This Query                |
+|---------------------------------|-------------------------------|
+| "Why is my computer slow?"      | High CPU or High Memory query |
+| "What's using all my RAM?"      | High Memory query             |
+| "What's using my network?"      | Network Connections query     |
+| "Is my fan running hot?"        | Temperature Info query        |
+| "Is my system compromised?"     | Suspicious Processes query    |
+| "What's causing disk slowdown?" | High Disk I/O query           |
+| "Give me a system overview"     | System Health Summary         |
 
 ### Advanced Queries (see Advanced Scenarios section)
 
-| User Question | Use This Query |
-|---------------|----------------|
+| User Question                  | Use This Query                |
+|--------------------------------|-------------------------------|
 | "What files changed recently?" | File Integrity / `file` table |
-| "Verify this file's hash" | Hash Verification query |
-| "Show my browser extensions" | Browser and Application Data |
-| "What runs at startup?" | Startup Items and Persistence |
-| "Show Docker containers" | Container queries |
-| "What apps are installed?" | Applications query |
+| "Verify this file's hash"      | Hash Verification query       |
+| "Show my browser extensions"   | Browser and Application Data  |
+| "What runs at startup?"        | Startup Items and Persistence |
+| "Show Docker containers"       | Container queries             |
+| "What apps are installed?"     | Applications query            |
 
 ## Predefined Queries
 
@@ -133,7 +133,7 @@ WHERE path LIKE '/etc/%' AND mtime > (strftime('%s', 'now') - 3600)
 
 ```sql
 -- Get hashes for a specific file
-SELECT path, md5, sha1, sha256 FROM hash WHERE path = '/usr/bin/ssh'
+SELECT path, md5, sha1, sha256 FROM hash WHERE path = '/usr/bin/ssh';
 
 -- Check hashes of all files in a directory
 SELECT path, sha256 FROM hash WHERE directory = '/usr/local/bin'
@@ -158,13 +158,13 @@ Osquery extends SQLite with useful functions:
 
 ```sql
 -- Chrome extensions (macOS/Linux)
-SELECT name, identifier, version, path FROM chrome_extensions
+SELECT name, identifier, version, path FROM chrome_extensions;
 
 -- Firefox addons
-SELECT name, identifier, version, active FROM firefox_addons
+SELECT name, identifier, version, active FROM firefox_addons;
 
 -- Safari extensions (macOS)
-SELECT name, identifier, version FROM safari_extensions
+SELECT name, identifier, version FROM safari_extensions;
 
 -- Installed applications (macOS)
 SELECT name, bundle_identifier, bundle_version FROM apps
@@ -176,13 +176,13 @@ SELECT name, bundle_identifier, bundle_version FROM apps
 
 ```sql
 -- macOS launch agents/daemons
-SELECT name, program, run_at_load FROM launchd WHERE run_at_load = '1'
+SELECT name, program, run_at_load FROM launchd WHERE run_at_load = '1';
 
 -- Linux systemd services
-SELECT id, description, active_state, sub_state FROM systemd_units WHERE active_state = 'active'
+SELECT id, description, active_state, sub_state FROM systemd_units WHERE active_state = 'active';
 
 -- Cron jobs
-SELECT command, path FROM crontab
+SELECT command, path FROM crontab;
 
 -- Scheduled tasks (Windows)
 SELECT name, action, path, enabled FROM scheduled_tasks WHERE enabled = 1
@@ -194,10 +194,10 @@ SELECT name, action, path, enabled FROM scheduled_tasks WHERE enabled = 1
 
 ```sql
 -- Docker containers
-SELECT id, name, image, state, status FROM docker_containers
+SELECT id, name, image, state, status FROM docker_containers;
 
 -- Docker images
-SELECT id, tags, size FROM docker_images
+SELECT id, tags, size FROM docker_images;
 
 -- Docker networks
 SELECT id, name, driver FROM docker_networks
@@ -209,7 +209,7 @@ When you need capabilities beyond the predefined queries:
 
 ```sql
 -- List all available tables on this system
-SELECT name FROM osquery_registry WHERE registry = 'table' ORDER BY name
+SELECT name FROM osquery_registry WHERE registry = 'table' ORDER BY name;
 
 -- Get schema for any table
 PRAGMA table_info(table_name_here)
