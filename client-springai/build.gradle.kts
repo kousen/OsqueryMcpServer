@@ -28,7 +28,11 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.junit.jupiter:junit-jupiter")
-    testImplementation("org.assertj:assertj-core")
+
+    // Handle transitive vulnerabilities
+    implementation("ch.qos.logback:logback-core:1.5.30")
+    implementation("ch.qos.logback:logback-classic:1.5.30")
+    testImplementation("org.assertj:assertj-core:4.0.0-M1")
 }
 
 application {
