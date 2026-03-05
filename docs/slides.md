@@ -530,9 +530,9 @@ background: 'linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%)'
 
 <div style="background: rgba(233, 69, 96, 0.15); padding: 1em; border-radius: 10px; margin: 0.5em 0;">
 <strong style="color: #e94560;">GitHub Repos</strong><br/>
-<span style="color: #94a3b8; font-size: 0.85em;">
-MCP Server: <code>github.com/kousen/OsqueryMcpServer</code><br/>
-Voice Client: <code>github.com/kousen/starfleet-voice-interface</code>
+<span style="font-size: 0.85em;">
+<a href="https://github.com/kousen/OsqueryMcpServer" style="color: #94a3b8;">github.com/kousen/OsqueryMcpServer</a><br/>
+<a href="https://github.com/kousen/starfleet-voice-interface" style="color: #94a3b8;">github.com/kousen/starfleet-voice-interface</a>
 </span>
 </div>
 
@@ -551,6 +551,7 @@ Daniela Petruzalek's blog post:<br/>
 <div style="color: #94a3b8; margin-top: 0.5em; line-height: 2;">
 
 <strong style="color: #e94560;">Ken Kousen</strong><br/>
+<a href="mailto:ken.kousen@kousenit.com" style="color: #60a5fa;">ken.kousen@kousenit.com</a><br/>
 <a href="https://kousenit.com" style="color: #60a5fa;">kousenit.com</a><br/>
 <a href="https://kenkousen.substack.com" style="color: #60a5fa;">kenkousen.substack.com</a><br/>
 <a href="https://youtube.com/@talesfromthejarside" style="color: #60a5fa;">Tales from the Jar Side</a>
