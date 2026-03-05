@@ -1,0 +1,41 @@
+sequenceDiagram
+    participant User as You (Voice)
+    participant FX as JavaFX Client<br/>(Java 21)
+    participant Whisper as Whisper AI
+    participant LLM as GPT-5 Nano
+    participant MCP as MCP Server<br/>(Java 25 + Spring AI)
+    participant OQ as osqueryi
+
+    User->>FX: "Computer, run a level 1 diagnostic"
+    FX->>Whisper: Audio bytes
+    Whisper-->>FX: "run a level 1 diagnostic"
+
+    FX->>LLM: User prompt + tool definitions
+    Note over LLM: Matches prompt to<br/>getSystemHealthSummary()
+
+    LLM->>MCP: Tool call: getSystemHealthSummary
+    Note over MCP: Virtual threads spawn<br/>5 parallel queries
+
+    par CPU query
+        MCP->>OQ: osqueryi --json "SELECT ... processes"
+        OQ-->>MCP: JSON result
+    and Memory query
+        MCP->>OQ: osqueryi --json "SELECT ... resident_size"
+        OQ-->>MCP: JSON result
+    and Disk query
+        MCP->>OQ: osqueryi --json "SELECT ... mounts"
+        OQ-->>MCP: JSON result
+    and Network query
+        MCP->>OQ: osqueryi --json "SELECT ... sockets"
+        OQ-->>MCP: JSON result
+    and Temperature query
+        MCP->>OQ: osqueryi --json "SELECT ... sensors"
+        OQ-->>MCP: JSON result
+    end
+
+    MCP-->>LLM: Combined system health JSON
+    Note over LLM: Synthesizes natural<br/>language summary
+
+    LLM-->>FX: Streamed response (Flux)
+    Note over FX: Text appears line<br/>by line in UI
+    FX-->>User: "Level 1 diagnostic complete..."

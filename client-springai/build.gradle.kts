@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.0.1"
+    id("org.springframework.boot") version "4.0.3"
     application
 }
 
@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.1"))
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.3"))
     implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0-M2"))
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.ai:spring-ai-starter-mcp-client")
@@ -32,6 +32,8 @@ dependencies {
     // Handle transitive vulnerabilities
     implementation("ch.qos.logback:logback-core:1.5.30")
     implementation("ch.qos.logback:logback-classic:1.5.30")
+    implementation("tools.jackson.core:jackson-core:3.1.0")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.21.1")
     testImplementation("org.assertj:assertj-core:4.0.0-M1")
 }
 

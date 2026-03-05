@@ -1,6 +1,6 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.0.1"
+    id("org.springframework.boot") version "4.0.3"
     id("org.graalvm.buildtools.native") version "0.10.6"
 }
 
@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.1"))
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.3"))
     implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0-M2"))
     implementation("org.springframework.ai:spring-ai-starter-mcp-server")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
@@ -28,6 +28,8 @@ dependencies {
     // Make transitive vulnerabilities go away
     implementation("ch.qos.logback:logback-core:1.5.29")
     implementation("ch.qos.logback:logback-classic:1.5.29")
+    implementation("tools.jackson.core:jackson-core:3.1.0")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.21.1")
     testImplementation("org.assertj:assertj-core:4.0.0-M1")
 }
 
