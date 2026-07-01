@@ -28,8 +28,7 @@ The project now includes a **complete Spring AI MCP client implementation** that
 
 ## Branch Strategy
 
-- **`main`**: Stable release on Spring Boot 3.5 / Spring AI 1.0 / Java 21
-- **`upgrade/spring-ai-2.0`**: Spring Boot 4.0.3 / Spring AI 2.0.0 (GA) / Java 25 / GraalVM native image — ready to merge to main
+- **`main`**: Spring Boot 4.0.3 / Spring AI 2.0.0 (GA) / Java 25 / GraalVM native image
 
 ## Available Tools
 

@@ -14,12 +14,12 @@ This project enables AI assistants to answer system diagnostic questions like "W
 | **Spring AI Client** | Programmatic access | CLI client using Spring AI's MCP auto-configuration |
 | **Claude Code Skill** | Claude Code CLI | Direct `osqueryi` execution via Bash, no server needed |
 
-## What's New (upgrade/spring-ai-2.0 branch)
+## What's New
 
-This branch upgrades the entire stack to the latest Spring ecosystem and adds GraalVM native image support:
+The stack was upgraded to the latest Spring ecosystem with GraalVM native image support:
 
-| Component | Before (main) | After (this branch) |
-|-----------|---------------|---------------------|
+| Component | Previous | Current |
+|-----------|----------|---------|
 | Spring Boot | 3.5.0 | **4.0.3** |
 | Spring AI | 1.0.0 | **2.0.0** |
 | Java | 21 | **25** (GraalVM CE) |
@@ -99,7 +99,6 @@ This branch upgrades the entire stack to the latest Spring ecosystem and adds Gr
 ```bash
 git clone https://github.com/yourusername/OsqueryMcpServer.git
 cd OsqueryMcpServer
-git checkout upgrade/spring-ai-2.0   # For the latest version
 ```
 
 2. Build the project:
