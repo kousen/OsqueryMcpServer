@@ -20,8 +20,8 @@ This branch upgrades the entire stack to the latest Spring ecosystem and adds Gr
 
 | Component | Before (main) | After (this branch) |
 |-----------|---------------|---------------------|
-| Spring Boot | 3.5.0 | **4.0.1** |
-| Spring AI | 1.0.0 | **2.0.0-M2** |
+| Spring Boot | 3.5.0 | **4.0.3** |
+| Spring AI | 1.0.0 | **2.0.0** |
 | Java | 21 | **25** (GraalVM CE) |
 | Jackson | 2.x (`com.fasterxml`) | **3.x** (`tools.jackson`) |
 | Dependency mgmt | `io.spring.dependency-management` plugin | Gradle `platform()` BOMs |
@@ -36,7 +36,7 @@ This branch upgrades the entire stack to the latest Spring ecosystem and adds Gr
 
 **Jackson 3 Migration** (client only): Spring Boot 4 ships Jackson 3 with new Maven coordinates (`tools.jackson.core` instead of `com.fasterxml.jackson.core`), immutable builders (`JsonMapper.builder().build()` instead of `new ObjectMapper()`), and unchecked exceptions (`JacksonException` instead of `JsonProcessingException`).
 
-**Gradle Build Changes**: Spring Boot 4 drops the `io.spring.dependency-management` plugin. Dependencies are now managed with Gradle-native `platform()` BOMs and the Spring Milestones repository (`https://repo.spring.io/milestone`).
+**Gradle Build Changes**: Spring Boot 4 drops the `io.spring.dependency-management` plugin. Dependencies are now managed with Gradle-native `platform()` BOMs. Spring AI 2.0.0 is GA on Maven Central, so no milestone repository is required.
 
 ## Features
 
@@ -53,7 +53,7 @@ This branch upgrades the entire stack to the latest Spring ecosystem and adds Gr
   - Access example queries for common problems
 - **Smart Query Assistance**: Built-in examples and schema discovery help the AI construct better queries
 - **STDIO-based MCP Integration**: Works seamlessly with Claude Desktop and other MCP-compatible AI tools
-- **Spring Boot 4.0.1 with Java 25**: Latest Spring ecosystem with GraalVM native image support
+- **Spring Boot 4.0.3 with Java 25**: Latest Spring ecosystem with GraalVM native image support
 - **GraalVM Native Image**: Sub-200ms startup for instant MCP responses (~36ms measured)
 
 ### Spring AI MCP Client
@@ -333,13 +333,13 @@ The project uses Gradle with `platform()` BOMs for dependency management (Spring
 ```kotlin
 plugins {
     java
-    id("org.springframework.boot") version "4.0.1"
+    id("org.springframework.boot") version "4.0.3"
     id("org.graalvm.buildtools.native") version "0.10.6"  // Server only
 }
 
 dependencies {
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.1"))
-    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0-M2"))
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.3"))
+    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0"))
     // ...
 }
 ```

@@ -14,8 +14,8 @@ The project now includes a **complete Spring AI MCP client implementation** that
 
 ## Architecture
 
-- **Spring Boot 4.0.1** with **Java 25** (GraalVM CE 25)
-- **Spring AI 2.0.0-M2** for MCP protocol support
+- **Spring Boot 4.0.3** with **Java 25** (GraalVM CE 25)
+- **Spring AI 2.0.0** for MCP protocol support
 - **Model Context Protocol (MCP)** server using Spring AI's MCP starter
 - **STDIO-based communication** for integration with Claude Desktop and other MCP tools
 - **GraalVM native image support** — ~36ms startup for instant MCP responses
@@ -29,7 +29,7 @@ The project now includes a **complete Spring AI MCP client implementation** that
 ## Branch Strategy
 
 - **`main`**: Stable release on Spring Boot 3.5 / Spring AI 1.0 / Java 21
-- **`upgrade/spring-ai-2.0`**: Spring Boot 4.0.1 / Spring AI 2.0.0-M2 / Java 25 / GraalVM native image — will merge when Spring AI 2.0 goes GA
+- **`upgrade/spring-ai-2.0`**: Spring Boot 4.0.3 / Spring AI 2.0.0 (GA) / Java 25 / GraalVM native image — ready to merge to main
 
 ## Available Tools
 
@@ -130,18 +130,17 @@ Spring Boot 4 drops the `io.spring.dependency-management` plugin. Dependencies a
 
 ```kotlin
 dependencies {
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.1"))
-    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0-M2"))
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.3"))
+    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0"))
     // ...
 }
 ```
 
-Spring AI 2.0.0-M2 requires the Spring Milestones repository:
+Spring AI 2.0.0 is GA on Maven Central, so no extra repository is needed:
 
 ```kotlin
 repositories {
     mavenCentral()
-    maven { url = uri("https://repo.spring.io/milestone") }
 }
 ```
 

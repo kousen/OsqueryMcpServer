@@ -212,17 +212,17 @@ The test suite includes:
 
 ## Dependencies
 
-- **Spring Boot 4.0.1** — Application framework
-- **Spring AI 2.0.0-M2** — MCP client starter with autoconfiguration
+- **Spring Boot 4.0.3** — Application framework
+- **Spring AI 2.0.0** — MCP client starter with autoconfiguration
 - **PicoCLI 4.7.5** - Command-line interface framework
 - **Jackson 3** (`tools.jackson`) — JSON parsing for output formatting
 - **JUnit 5 and AssertJ** — Testing framework
 
 ### Critical Dependency Notes
 
-- **Spring AI BOM 2.0.0-M2** - Ensures compatible versions of all Spring AI components (requires Spring Milestones repo)
+- **Spring AI BOM 2.0.0** - Ensures compatible versions of all Spring AI components (GA on Maven Central)
 - **MCP Client Starter** - Provides `SyncMcpToolCallbackProvider` and auto-configuration
-- **Java 25** - Required for Spring Boot 4.0.1
+- **Java 25** - Required for Spring Boot 4.0.3
 - **Jackson 3 JsonMapper** — Immutable builder pattern (`JsonMapper.builder().build()`), unchecked exceptions
 
 ## Comparison with Manual Implementation
