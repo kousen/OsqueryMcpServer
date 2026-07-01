@@ -1,7 +1,7 @@
 plugins {
     java
-    id("org.springframework.boot") version "3.5.0"
-    id("io.spring.dependency-management") version "1.1.7"
+    id("org.springframework.boot") version "4.0.3"
+    id("org.graalvm.buildtools.native") version "0.10.6"
 }
 
 group = "com.kousenit"
@@ -9,7 +9,7 @@ version = "1.0"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -17,18 +17,19 @@ repositories {
     mavenCentral()
 }
 
-extra["springAiVersion"] = "1.0.0"
-
 dependencies {
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.3"))
+    implementation(platform("org.springframework.ai:spring-ai-bom:2.0.0"))
     implementation("org.springframework.ai:spring-ai-starter-mcp-server")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
 
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
-    }
+    // Make transitive vulnerabilities go away
+    implementation("ch.qos.logback:logback-core:1.5.29")
+    implementation("ch.qos.logback:logback-classic:1.5.29")
+    implementation("tools.jackson.core:jackson-core:3.1.0")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.21.1")
+    testImplementation("org.assertj:assertj-core:4.0.0-M1")
 }
 
 tasks.withType<Test> {

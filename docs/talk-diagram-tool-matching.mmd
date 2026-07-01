@@ -1,0 +1,29 @@
+flowchart TD
+    Q["Natural Language Query"]
+
+    Q --> LLM["LLM reads all 11 tool descriptions"]
+
+    LLM --> M1{"'Why is my fan loud?'"}
+    LLM --> M2{"'What's using memory?'"}
+    LLM --> M3{"'Run a diagnostic'"}
+    LLM --> M4{"'Is my system secure?'"}
+    LLM --> M5{"'Show network activity'"}
+
+    M1 --> T1["getTemperatureInfo()"]
+    M2 --> T2["getHighMemoryProcesses()"]
+    M3 --> T3["getSystemHealthSummary()"]
+    M4 --> T4["getSuspiciousProcesses()"]
+    M5 --> T5["getNetworkConnections()"]
+
+    T1 --> E["executeOsquery(sql)"]
+    T2 --> E
+    T3 -->|"5 parallel calls"| E
+    T4 --> E
+    T5 --> E
+
+    E --> PB["ProcessBuilder:\nosqueryi --json SQL"]
+
+    style Q fill:#533483,stroke:#e94560,color:#fff
+    style LLM fill:#0f3460,stroke:#533483,color:#fff
+    style E fill:#e94560,stroke:#1a1a2e,color:#fff
+    style PB fill:#1a1a2e,stroke:#e94560,color:#fff

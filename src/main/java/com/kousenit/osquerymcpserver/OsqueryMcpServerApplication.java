@@ -9,7 +9,11 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class OsqueryMcpServerApplication {
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
+        // Suppress logback status messages before any logging initialization —
+        // critical for STDIO MCP mode where stdout must be clean JSON-RPC only
+        System.setProperty("logback.statusListenerClass",
+                "ch.qos.logback.core.status.NopStatusListener");
         SpringApplication.run(OsqueryMcpServerApplication.class, args);
     }
 

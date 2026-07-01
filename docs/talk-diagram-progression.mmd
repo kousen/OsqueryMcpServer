@@ -1,0 +1,33 @@
+flowchart LR
+    subgraph L1["Layer 1: Raw Tool"]
+        OQ[osqueryi]
+        SQL["SELECT name, pid\nFROM processes\nORDER BY cpu_time\nDESC LIMIT 10"]
+        SQL --> OQ
+    end
+
+    subgraph L2["Layer 2: Skill"]
+        SK[".claude/skills/osquery/"]
+        SKILL_MD["SKILL.md + queries.md\nNatural language mapping"]
+        SK --> SKILL_MD
+        SKILL_MD -->|"Bash tool"| OQ
+    end
+
+    subgraph L3["Layer 3: MCP Server"]
+        SB["Spring Boot + Spring AI"]
+        TOOLS["11 @Tool methods\nDiscoverable by any client"]
+        SB --> TOOLS
+        TOOLS -->|ProcessBuilder| OQ
+    end
+
+    subgraph L4["Layer 4: Voice Client"]
+        MIC["Microphone"]
+        WH["Whisper AI"]
+        FX["JavaFX UI"]
+        MIC --> WH --> FX
+        FX -->|"MCP Protocol"| SB
+    end
+
+    style L1 fill:#1a1a2e,stroke:#e94560,color:#eee
+    style L2 fill:#16213e,stroke:#0f3460,color:#eee
+    style L3 fill:#0f3460,stroke:#533483,color:#eee
+    style L4 fill:#533483,stroke:#e94560,color:#eee

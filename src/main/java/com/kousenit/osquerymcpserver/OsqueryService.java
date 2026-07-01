@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -49,7 +51,7 @@ public class OsqueryService {
          Example: SELECT name, pid FROM processes""")
     public String executeOsquery(String sql) {
         logger.debug("Executing osquery SQL: {}", sql);
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         
         try {
             ProcessBuilder pb = new ProcessBuilder("osqueryi", "--json", sql);
@@ -63,7 +65,7 @@ public class OsqueryService {
             
             // Wait for process to complete with timeout
             boolean completed = p.waitFor(30, TimeUnit.SECONDS);
-            long executionTime = System.currentTimeMillis() - startTime;
+            long executionTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
             
             if (!completed) {
                 p.destroyForcibly();
@@ -87,11 +89,11 @@ public class OsqueryService {
             return result;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            long executionTime = System.currentTimeMillis() - startTime;
+            long executionTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
             logger.error("Query interrupted after {}ms: {}", executionTime, sql, e);
             return "Error: Query execution was interrupted";
         } catch (Exception e) {
-            long executionTime = System.currentTimeMillis() - startTime;
+            long executionTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
             logger.error("Failed to execute osquery after {}ms: {}", executionTime, sql, e);
             return "Error: " + e.getMessage();
         }
@@ -194,61 +196,77 @@ public class OsqueryService {
          Shows temperature sensors and fan speeds.
          Useful for 'Why is my fan running?' or 'Is my computer overheating?'""")
     public String getTemperatureInfo() {
-        // This combines temperature and fan data
-        String temps = executeOsquery("SELECT name, celsius FROM temperature_sensors");
-        String fans = executeOsquery("SELECT fan, name, actual, min, max FROM fan_speed_sensors");
-        
-        // Handle cases where tables don't exist (non-macOS or missing sensors)
-        if (temps.startsWith("Error:") && fans.startsWith("Error:")) {
-            return "Temperature and fan information not available on this system";
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var tempsFuture = CompletableFuture.supplyAsync(
+                    () -> executeOsquery("SELECT name, celsius FROM temperature_sensors"), executor);
+            var fansFuture = CompletableFuture.supplyAsync(
+                    () -> executeOsquery("SELECT fan, name, actual, min, max FROM fan_speed_sensors"), executor);
+
+            String temps = tempsFuture.join();
+            String fans = fansFuture.join();
+
+            // Handle cases where tables don't exist (non-macOS or missing sensors)
+            if (temps.startsWith("Error:") && fans.startsWith("Error:")) {
+                return "Temperature and fan information not available on this system";
+            }
+
+            StringBuilder result = new StringBuilder();
+
+            if (!temps.startsWith("Error:")) {
+                result.append("Temperature sensors:\n").append(temps);
+            } else {
+                result.append("Temperature sensors: Not available");
+            }
+
+            result.append("\n\n");
+
+            if (!fans.startsWith("Error:")) {
+                result.append("Fan speeds:\n").append(fans);
+            } else {
+                result.append("Fan speeds: Not available");
+            }
+
+            return result.toString();
         }
-        
-        StringBuilder result = new StringBuilder();
-        
-        if (!temps.startsWith("Error:")) {
-            result.append("Temperature sensors:\n").append(temps);
-        } else {
-            result.append("Temperature sensors: Not available");
-        }
-        
-        result.append("\n\n");
-        
-        if (!fans.startsWith("Error:")) {
-            result.append("Fan speeds:\n").append(fans);
-        } else {
-            result.append("Fan speeds: Not available");
-        }
-        
-        return result.toString();
     }
 
     @Tool(description = "Get overall system health summary")
     public String getSystemHealthSummary() {
-        // Combine CPU, memory, disk, network data
-        String cpu = getHighCpuProcesses();
-        String memory = getHighMemoryProcesses();
-        String disk = executeOsquery(
-                "SELECT path, blocks_available, blocks, inodes_free FROM mounts WHERE path = '/'");
-        String network = getNetworkConnections();
-        String temperature = getTemperatureInfo();
-        return """
-            System Health Summary:
-            
-            CPU Usage:
-            %s
-            
-            Memory Usage:
-            %s
-            
-            Disk Usage:
-            %s
-            
-            Network Connections:
-            %s
-            
-            Temperature and Fans:
-            %s
-            """.formatted(cpu, memory, disk, network, temperature);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var cpuFuture = CompletableFuture.supplyAsync(this::getHighCpuProcesses, executor);
+            var memoryFuture = CompletableFuture.supplyAsync(this::getHighMemoryProcesses, executor);
+            var diskFuture = CompletableFuture.supplyAsync(
+                    () -> executeOsquery("""
+                    SELECT path, blocks_available, blocks, inodes_free FROM mounts WHERE path = '/'
+                    """),
+                    executor);
+            var networkFuture = CompletableFuture.supplyAsync(this::getNetworkConnections, executor);
+            var temperatureFuture = CompletableFuture.supplyAsync(this::getTemperatureInfo, executor);
+
+            return """
+                System Health Summary:
+
+                CPU Usage:
+                %s
+
+                Memory Usage:
+                %s
+
+                Disk Usage:
+                %s
+
+                Network Connections:
+                %s
+
+                Temperature and Fans:
+                %s
+                """.formatted(
+                    cpuFuture.join(),
+                    memoryFuture.join(),
+                    diskFuture.join(),
+                    networkFuture.join(),
+                    temperatureFuture.join());
+        }
     }
 
     @Tool(description = """
